@@ -311,7 +311,7 @@ public class UserService {
 
     public boolean isUserBlocked(Long id) {
         User user = getById(id);
-        return blockedUsersRepository.findByOwnerAndUser(user, getCurrentUser()).isPresent();
+        return blockedUsersRepository.findByOwnerAndUser(getCurrentUser(), user).isPresent();
     }
 
     public static User getCurrentUser() {
