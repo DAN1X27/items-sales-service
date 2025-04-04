@@ -3,7 +3,7 @@ package danix.app.chats_service.services;
 import danix.app.chats_service.dto.ResponseChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feignClients.FilesService;
-import danix.app.chats_service.feignClients.UserService;
+import danix.app.chats_service.feignClients.UsersService;
 import danix.app.chats_service.models.Chat;
 import danix.app.chats_service.models.Message;
 import danix.app.chats_service.repositories.ChatsRepository;
@@ -34,7 +34,7 @@ public class ChatService {
     private final ChatsRepository chatsRepository;
     private final MessagesRepository messagesRepository;
     private final FilesService filesService;
-    private final UserService userService;
+    private final UsersService usersService;
     private final SimpMessagingTemplate messagingTemplate;
     private final ModelMapper mapper;
     private final KafkaTemplate<String, List<String>> kafkaTemplate;
@@ -59,7 +59,9 @@ public class ChatService {
     @Transactional
     public void create(long userId, String token) {
         User currentUser = getCurrentUser();
-        userService.getById(userId, token);
+        if (usersService.isBlocked(userId, token)) {
+            throw new ChatException("User has blocked you");
+        }
         chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresentOrElse(chat -> {
             throw new ChatException("Chat already exists");
         }, () -> {
@@ -70,14 +72,14 @@ public class ChatService {
     }
 
     @Transactional
-    public void sendTextMessage(long chatId, String text) {
-        sendMessage(chatId, text, Message.ContentType.TEXT);
+    public void sendTextMessage(long chatId, String text, String token) {
+        sendMessage(chatId, text, Message.ContentType.TEXT, token);
     }
 
     @Transactional
-    public void sendImage(long chatId, MultipartFile image) {
+    public void sendImage(long chatId, MultipartFile image, String token) {
         String uuid = UUID.randomUUID() + ".jpg";
-        Message message = sendMessage(chatId, uuid, Message.ContentType.IMAGE);
+        Message message = sendMessage(chatId, uuid, Message.ContentType.IMAGE, token);
         try {
             filesService.saveImage(image, uuid);
         } catch (Exception e) {
@@ -96,11 +98,15 @@ public class ChatService {
         return filesService.downloadImage(message.getText());
     }
 
-    private Message sendMessage(long chatId, String text, Message.ContentType contentType) {
+    private Message sendMessage(long chatId, String text, Message.ContentType contentType, String token) {
         User currentUser = getCurrentUser();
         Chat chat = chatsRepository.findById(chatId)
                 .orElseThrow(() -> new ChatException("Chat not found"));
         checkUserInChat(chat);
+        long userId = chat.getUser1Id() == currentUser.getId() ? chat.getUser2Id() : chat.getUser1Id();
+        if (usersService.isBlocked(userId, token)) {
+            throw new ChatException("User has blocked you");
+        }
         Message message = messagesRepository.save(Message.builder()
                 .chat(chat)
                 .text(text)

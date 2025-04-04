@@ -47,18 +47,20 @@ public class ChatsController {
     }
 
     @PostMapping("/{id}/message")
-    public ResponseEntity<HttpStatus> sendMessage(@PathVariable long id, @RequestBody Map<String, Object> messageData) {
+    public ResponseEntity<HttpStatus> sendMessage(@PathVariable long id, @RequestBody Map<String, Object> messageData,
+                                                 @RequestHeader("Authorization") String token) {
         String message = (String) messageData.get("message");
         if (message == null || message.isBlank()) {
             throw new ChatException("Message must not be empty");
         }
-        chatService.sendTextMessage(id, message);
+        chatService.sendTextMessage(id, message, token);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PostMapping("/{id}/image")
-    public ResponseEntity<HttpStatus> sendImage(@PathVariable long id, @RequestParam MultipartFile image) {
-        chatService.sendImage(id, image);
+    public ResponseEntity<HttpStatus> sendImage(@PathVariable long id, @RequestParam MultipartFile image,
+                                                @RequestHeader("Authorization") String token) {
+        chatService.sendImage(id, image, token);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
