@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: 'files-service'
+  config:
+    import: 'configserver:'
+  cloud:
+    config:
+      uri: ${config_uri}
+      username: ${config_username}
+      password: ${config_password}
+  servlet:
+    multipart:
+      max-file-size: ${max_file_size}
+      max-request-size: ${max_file_size}
+  kafka:
+    consumer:
+      bootstrap-servers: ${kafka.host}:${kafka.port}
+      group-id: ${kafka.group-id}
+server:
+  port: 8084
+paths:
+  users-avatars: "D:/Java Projects/items-sales-service/files-service/files/users_avatars"
+  chats_images_path: "D:/Java Projects/items-sales-service/files-service/files/chats_images"
+  chats_videos_path: "D:/Java Projects/items-sales-service/files-service/files/chats_videos"
+  announcements_images_path: "D:/Java Projects/items-sales-service/files-service/files/announcements_images"
+eureka:
+  instance:
+    instanceId: ${spring.application.name}
+    hostname: ${eureka.client.hostname}
+    preferIpAddress: false
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${eureka.server.url}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh

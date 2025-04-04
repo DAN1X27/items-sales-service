@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: 'chats-service'
+  config:
+    import: 'configserver:'
+  cloud:
+    config:
+      uri: ${config_uri}
+      username: ${config_username}
+      password: ${config_password}
+  jpa:
+    show-sql: true
+  kafka:
+    consumer:
+      bootstrap-servers: ${kafka.host}:${kafka.port}
+  datasource:
+    url: ${db.url}
+    username: ${db.username}
+    password: ${db.password}
+eureka:
+  instance:
+    instanceId: ${spring.application.name}
+    hostname: ${eureka.client.hostname}
+    preferIpAddress: false
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${eureka.server.url}
+client_url: ${client_url}
+server:
+  port: 8085
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh

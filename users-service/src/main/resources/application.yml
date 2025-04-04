@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: 'users-service'
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${db.username}
+    password: ${db.password}
+    url: ${db.url}
+  servlet:
+    multipart:
+      max-file-size: ${max-file-size}
+      max-request-size: ${max-file-size}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    consumer:
+      bootstrap-servers: ${kafka.host}:${kafka.port}
+  config:
+    import: 'configserver:'
+  cloud:
+    discovery:
+      enabled: true
+    config:
+      uri: ${config_uri}
+      username: ${config_username}
+      password: ${config_password}
+server:
+  port: 9090
+avatar:
+  default: ${default-avatar}
+eureka:
+  instance:
+    instanceId: ${spring.application.name}
+    hostname: ${eureka.client.hostname}
+    preferIpAddress: false
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${eureka.server.url}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh

@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: gateway-service
+  config:
+    import: 'configserver:'
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:63342"
+            allowedHeaders: "*"
+            allow-credentials: true
+            allowedMethods:
+              - GET
+              - POST
+              - DELETE
+              - PUT
+              - OPTIONS
+    config:
+      uri: ${config_uri}
+      username: ${config_username}
+      password: ${config_password}
+eureka:
+  instance:
+    instanceId: ${spring.application.name}
+    hostname: ${eureka.client.hostname}
+    preferIpAddress: false
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${eureka.server.url}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh

@@ -1,0 +1,42 @@
+server:
+  port: 7070
+spring:
+  application:
+    name: 'email-sender-service'
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+    username: ${mail.username}
+    password: ${mail.password}
+  config:
+    import: 'configserver:'
+  cloud:
+    config:
+      uri: ${config_uri}
+      username: ${config_username}
+      password: ${config_password}
+  kafka:
+    consumer:
+      bootstrap-servers: ${kafka.host}:${kafka.port}
+      group-id: ${kafka.group_id}
+eureka:
+  instance:
+    instanceId: ${spring.application.name}
+    hostname: ${eureka.client.hostname}
+    preferIpAddress: false
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${eureka.server.url}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh
