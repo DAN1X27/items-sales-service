@@ -2,7 +2,7 @@ package danix.app.authentication_service.controllers;
 
 import danix.app.authentication_service.dto.LoginDTO;
 import danix.app.authentication_service.dto.RegistrationDTO;
-import danix.app.authentication_service.dto.RegistrationKeyDTO;
+import danix.app.authentication_service.dto.EmailKeyDTO;
 import danix.app.authentication_service.dto.ResetPasswordDTO;
 import danix.app.authentication_service.security.UserDetailsImpl;
 import danix.app.authentication_service.services.EmailKeyService;
@@ -21,6 +21,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -108,13 +109,37 @@ public class AuthController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/key")
+    public ResponseEntity<HttpStatus> sendEmailKey(@RequestParam String email, @RequestParam String message) {
+        emailKeyService.getByEmail(email).ifPresent(key -> {
+            throw new AuthenticationException("You already have an active key");
+        });
+        emailKeyService.sendKey(email, message);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PostMapping("/email/update")
+    public ResponseEntity<Map<String, Object>> validateUpdateEmailKey(@RequestBody @Valid EmailKeyDTO registrationEmailKeyDTO,
+                                                                      BindingResult bindingResult) {
+        handleRequestErrors(bindingResult);
+        emailKeyValidator.validate(registrationEmailKeyDTO, bindingResult);
+        handleRequestErrors(bindingResult);
+        emailKeyService.delete(registrationEmailKeyDTO.getEmail());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        tokenService.deleteUserTokens(userDetails.userAuthentication().getId());
+        String token = jwtUtil.generateToken(registrationEmailKeyDTO.getEmail());
+        tokenService.save(token, userDetails.userAuthentication().getId());
+        return new ResponseEntity<>(Map.of("jwt-token", token), HttpStatus.OK);
+    }
+
     @PostMapping("/registration-confirm")
-    public ResponseEntity<Map<String, Object>> registrationConfirm(@RequestBody @Valid RegistrationKeyDTO registrationKeyDTO,
+    public ResponseEntity<Map<String, Object>> registrationConfirm(@RequestBody @Valid EmailKeyDTO registrationEmailKeyDTO,
                                                                    BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
-        emailKeyValidator.validate(registrationKeyDTO, bindingResult);
+        emailKeyValidator.validate(registrationEmailKeyDTO, bindingResult);
         handleRequestErrors(bindingResult);
-        String email = registrationKeyDTO.getEmail();
+        String email = registrationEmailKeyDTO.getEmail();
         emailKeyService.delete(email);
         Long id = userService.registrationConfirm(email);
         String token = jwtUtil.generateToken(email);

@@ -1,7 +1,6 @@
 package danix.app.authentication_service.util;
 
-import danix.app.authentication_service.dto.EmailKeyDTO;
-import danix.app.authentication_service.dto.RegistrationKeyDTO;
+import danix.app.authentication_service.dto.EmailKey;
 import danix.app.authentication_service.services.EmailKeyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,12 +15,12 @@ public class EmailKeyValidator implements Validator {
 
     @Override
     public boolean supports(Class<?> clazz) {
-        return EmailKeyDTO.class.equals(clazz);
+        return EmailKey.class.equals(clazz);
     }
 
     @Override
     public void validate(Object target, Errors errors) {
-        EmailKeyDTO keyDTO = (EmailKeyDTO) target;
+        EmailKey keyDTO = (EmailKey) target;
         emailKeyService.getByEmail(keyDTO.email()).ifPresentOrElse(key -> {
             if (!key.equals(keyDTO.key())) {
                 errors.rejectValue("key", "", "Incorrect key");

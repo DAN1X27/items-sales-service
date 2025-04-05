@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ResetPasswordDTO implements EmailKeyDTO {
+public class ResetPasswordDTO implements EmailKey {
 
     @NotBlank(message = "Email must not be empty")
     private String email;

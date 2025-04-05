@@ -55,7 +55,6 @@ public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
                     if (id != user.getId()) {
                         throw new IllegalArgumentException();
                     }
-
                 }
             }
         }

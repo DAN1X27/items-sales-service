@@ -119,7 +119,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateInfo(UpdateInfoDTO updateInfoDTO) {
+    public void updatePassword(UpdateInfoDTO updateInfoDTO) {
         User user = getById(getCurrentUser().getId());
         if (updateInfoDTO.getUsername() != null) {
             if (updateInfoDTO.getUsername().isBlank()) {
@@ -142,9 +142,14 @@ public class UserService {
     }
 
     @Transactional
-    public void updatePassword(String email, String password) {
-        User user = getByEmail(email);
+    public void updatePassword(User user, String password) {
         user.setPassword(password);
+    }
+
+    @Transactional
+    public void updateEmail(String email) {
+        User user = getById(getCurrentUser().getId());
+        user.setEmail(email);
     }
 
     @Transactional

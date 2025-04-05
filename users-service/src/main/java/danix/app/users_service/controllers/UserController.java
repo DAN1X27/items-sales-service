@@ -1,6 +1,7 @@
 package danix.app.users_service.controllers;
 
 import danix.app.users_service.dto.*;
+import danix.app.users_service.feignClients.AuthenticationService;
 import danix.app.users_service.models.User;
 import danix.app.users_service.repositories.BannedUsersRepository;
 import danix.app.users_service.services.UserService;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,6 +34,8 @@ public class UserController {
     private final UserService userService;
     private final RegistrationValidator registrationValidator;
     private final BannedUsersRepository bannedUsersRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationService authenticationService;
     @Value("${protected_endpoints_key}")
     private String protectedEndpointsKey;
 
@@ -100,7 +104,7 @@ public class UserController {
 
     @PatchMapping
     public ResponseEntity<HttpStatus> updateInfo(@RequestBody UpdateInfoDTO updateInfoDTO) {
-        userService.updateInfo(updateInfoDTO);
+        userService.updatePassword(updateInfoDTO);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -110,8 +114,47 @@ public class UserController {
         if (key == null || !key.equals(protectedEndpointsKey)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-        userService.updatePassword(email, password);
+        User user = userService.getByEmail(email);
+        userService.updatePassword(user, password);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PatchMapping("/password")
+    public ResponseEntity<HttpStatus> updatePassword(@RequestBody @Valid UpdatePasswordDTO updatePasswordDTO,
+                                                     BindingResult bindingResult) {
+        handleRequestErrors(bindingResult);
+        User user = userService.getById(getCurrentUser().getId());
+        if (!passwordEncoder.matches(updatePasswordDTO.getOldPassword(), user.getPassword())) {
+            throw new UserException("Incorrect password");
+        }
+        if (passwordEncoder.matches(updatePasswordDTO.getNewPassword(), user.getPassword())) {
+            throw new UserException("The new password must be different from the old one");
+        }
+        userService.updatePassword(user, passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/email")
+    public ResponseEntity<HttpStatus> sendUpdateEmailKey(@RequestHeader("Authorization") String token,
+                                                         @RequestBody @Valid UpdateEmailDTO updateEmailDTO,
+                                                         BindingResult bindingResult) {
+        handleRequestErrors(bindingResult);
+        User user = getCurrentUser();
+        if (!passwordEncoder.matches(updateEmailDTO.getPassword(), user.getPassword())) {
+            throw new UserException("Incorrect password");
+        }
+        String message = "Your key for update email: ";
+        authenticationService.sendEmailKey(updateEmailDTO.getEmail(), message, token);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/email")
+    public ResponseEntity<Map<String, Object>> updateEmail(@RequestBody Map<String, Object> emailKey,
+                                                           @RequestHeader("Authorization") String token) {
+        Map<String, Object> jwtToken = authenticationService.validateEmailKey(emailKey, token);
+        String email = (String) emailKey.get("email");
+        userService.updateEmail(email);
+        return new ResponseEntity<>(jwtToken, HttpStatus.OK);
     }
 
     @PatchMapping("/avatar")

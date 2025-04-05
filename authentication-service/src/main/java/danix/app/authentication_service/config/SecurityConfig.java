@@ -24,13 +24,13 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(requests ->
                         requests
+                                .requestMatchers("/auth/key", "/auth/email/update")
+                                .hasAnyRole("USER", "ADMIN")
                                 .requestMatchers("/auth/tokens/").hasRole("ADMIN")
                                 .anyRequest().permitAll())
                 .sessionManagement(session -> session
