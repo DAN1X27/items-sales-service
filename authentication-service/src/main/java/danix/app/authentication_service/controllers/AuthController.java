@@ -3,16 +3,18 @@ package danix.app.authentication_service.controllers;
 import danix.app.authentication_service.dto.LoginDTO;
 import danix.app.authentication_service.dto.RegistrationDTO;
 import danix.app.authentication_service.dto.RegistrationKeyDTO;
+import danix.app.authentication_service.dto.ResetPasswordDTO;
 import danix.app.authentication_service.security.UserDetailsImpl;
 import danix.app.authentication_service.services.EmailKeyService;
 import danix.app.authentication_service.services.TokenService;
-import danix.app.authentication_service.feignClients.UserService;
+import danix.app.authentication_service.feign_clients.UserService;
 import danix.app.authentication_service.util.AuthenticationException;
 import danix.app.authentication_service.util.EmailKeyValidator;
 import danix.app.authentication_service.util.ErrorResponse;
 import danix.app.authentication_service.util.JWTUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -38,6 +40,8 @@ public class AuthController {
     private final TokenService tokenService;
     private final EmailKeyService emailKeyService;
     private final EmailKeyValidator emailKeyValidator;
+    @Value("${protected_endpoints_key}")
+    private String protectedEndpointsKey;
 
     @GetMapping("/authorize")
     public ResponseEntity<Map<String, Object>> authorize(@RequestHeader("Authorization") String header) {
@@ -46,7 +50,8 @@ public class AuthController {
         }
         String token = header.substring(7);
         try {
-            return new ResponseEntity<>(userService.getUserAuthentication(tokenService.validateToken(token)), HttpStatus.OK);
+            return new ResponseEntity<>(userService.getUserAuthentication(tokenService.validateToken(token),
+                    protectedEndpointsKey), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -77,8 +82,30 @@ public class AuthController {
         });
         registrationDTO.setPassword(passwordEncoder.encode(registrationDTO.getPassword()));
         userService.tempRegistration(registrationDTO);
-        emailKeyService.save(registrationDTO.getEmail());
+        emailKeyService.registrationKey(registrationDTO.getEmail());
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PostMapping("/password/reset/key")
+    public ResponseEntity<HttpStatus> sendResetPasswordKey(@RequestParam String email) {
+        userService.getUserAuthentication(email, protectedEndpointsKey);
+        emailKeyService.getByEmail(email).ifPresent(key -> {
+            throw new AuthenticationException("You already have an active key");
+        });
+        emailKeyService.resetPasswordKey(email);
+        return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PatchMapping("/password/reset")
+    public ResponseEntity<HttpStatus> resetPassword(@RequestBody @Valid ResetPasswordDTO resetPasswordDTO,
+                                                    BindingResult bindingResult) {
+        handleRequestErrors(bindingResult);
+        emailKeyValidator.validate(resetPasswordDTO, bindingResult);
+        handleRequestErrors(bindingResult);
+        String password = passwordEncoder.encode(resetPasswordDTO.getPassword());
+        userService.resetPassword(resetPasswordDTO.getEmail(), password, protectedEndpointsKey);
+        emailKeyService.delete(resetPasswordDTO.getEmail());
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/registration-confirm")

@@ -9,6 +9,7 @@ import danix.app.users_service.util.RegistrationValidator;
 import danix.app.users_service.util.UserException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,10 +32,18 @@ public class UserController {
     private final UserService userService;
     private final RegistrationValidator registrationValidator;
     private final BannedUsersRepository bannedUsersRepository;
+    @Value("${protected_endpoints_key}")
+    private String protectedEndpointsKey;
 
     @GetMapping("/{id}")
     public ResponseEntity<ResponseUserDTO> findById(@PathVariable Long id) {
         return new ResponseEntity<>(userService.show(id), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/comments")
+    public List<ResponseCommentDTO> getUserComments(@PathVariable long id, @RequestParam int page,
+                                                    @RequestParam int count) {
+        return userService.getUserComments(id, page, count);
     }
 
     @GetMapping("/info")
@@ -43,22 +52,26 @@ public class UserController {
     }
 
     @PostMapping("/registration")
-    public ResponseEntity<HttpStatus> temporalRegistration(@RequestBody @Valid RegistrationUserDTO registrationUserDTO,
+    public ResponseEntity<HttpStatus> temporalRegistration(@RequestBody @Valid RegistrationDTO registrationDTO,
                                                            BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
-        registrationValidator.validate(registrationUserDTO, bindingResult);
+        registrationValidator.validate(registrationDTO, bindingResult);
         handleRequestErrors(bindingResult);
-        userService.temporalRegistration(registrationUserDTO);
+        userService.temporalRegistration(registrationDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @PostMapping("/registration-confirm")
+    @PostMapping("/registration/confirm")
     public ResponseEntity<Long> registrationConfirm(@RequestParam String email) {
         return new ResponseEntity<>(userService.registrationConfirm(email), HttpStatus.OK);
     }
 
     @GetMapping("/authentication")
-    public ResponseEntity<ResponseUserAuthenticationDTO> getUserAuthentication(@RequestParam String email) {
+    public ResponseEntity<ResponseUserAuthenticationDTO> getUserAuthentication(@RequestParam String email,
+                                                                               @RequestParam String key) {
+        if (key == null || !key.equals(protectedEndpointsKey)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
         User user = userService.getByEmail(email);
         if (user.getStatus() == User.Status.TEMPORALLY_REGISTERED) {
             throw new UserException("User not found");
@@ -88,6 +101,16 @@ public class UserController {
     @PatchMapping
     public ResponseEntity<HttpStatus> updateInfo(@RequestBody UpdateInfoDTO updateInfoDTO) {
         userService.updateInfo(updateInfoDTO);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<HttpStatus> resetPassword(@RequestParam String email, @RequestParam String password,
+                                                    @RequestParam String key) {
+        if (key == null || !key.equals(protectedEndpointsKey)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        userService.updatePassword(email, password);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -123,7 +146,7 @@ public class UserController {
     public ResponseEntity<HttpStatus> createComment(@PathVariable Long id, @RequestBody Map<String, Object> data) {
         String comment = (String) data.get("comment");
         if (comment == null) {
-            throw new UserException("Comment cannot be empty");
+            throw new UserException("Comment must not be empty");
         }
         userService.addComment(id, comment);
         return new ResponseEntity<>(HttpStatus.CREATED);

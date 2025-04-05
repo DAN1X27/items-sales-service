@@ -45,3 +45,4 @@ management:
     web:
       exposure:
         include: refresh
+protected_endpoints_key: ${protected_endpoints_key}

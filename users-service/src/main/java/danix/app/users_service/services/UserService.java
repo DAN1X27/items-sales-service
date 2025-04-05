@@ -11,6 +11,7 @@ import danix.app.users_service.util.UserException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -62,46 +63,50 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .grade(responseUserDTO.getGrade())
-                .comments(responseUserDTO.getComments())
                 .country(responseUserDTO.getCountry())
                 .city(responseUserDTO.getCity())
                 .build();
     }
 
     private ResponseUserDTO convertToResponseDTO(User user) {
-        List<ResponseCommentDTO> comments = user.getComments().stream()
-                .map(comment ->
-                    ResponseCommentDTO.builder()
-                        .text(comment.getText())
-                        .id(comment.getId())
-                        .senderId(comment.getOwner().getId())
-                        .createdAt(comment.getCreatedAt())
-                        .build()
-                ).toList();
         Double grade = !user.getGrades().isEmpty() ? user.getGrades().stream().mapToDouble(Grade::getStars).sum() / user.getGrades().size() : null;
         return ResponseUserDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .grade(grade)
-                .comments(comments)
                 .city(user.getCity())
                 .country(user.getCountry())
                 .build();
     }
 
+    public List<ResponseCommentDTO> getUserComments(long id, int page, int count) {
+        User user = getById(id);
+        List<Comment> comments = commentsRepository.findAllByUser(user,
+                PageRequest.of(page, count, Sort.by(Sort.Direction.DESC, "id")));
+        return comments.stream()
+                .map(comment ->
+                        ResponseCommentDTO.builder()
+                                .text(comment.getText())
+                                .id(comment.getId())
+                                .senderId(comment.getOwner().getId())
+                                .createdAt(comment.getCreatedAt())
+                                .build()
+                ).toList();
+    }
+
     @Transactional
-    public void temporalRegistration(RegistrationUserDTO registrationUserDTO) {
+    public void temporalRegistration(RegistrationDTO registrationDTO) {
         usersRepository.save(
             User.builder()
-                .username(registrationUserDTO.getUsername())
-                .email(registrationUserDTO.getEmail())
-                .password(registrationUserDTO.getPassword())
+                .username(registrationDTO.getUsername())
+                .email(registrationDTO.getEmail())
+                .password(registrationDTO.getPassword())
                 .role(User.Role.ROLE_USER)
                 .status(User.Status.TEMPORALLY_REGISTERED)
                 .registeredAt(LocalDateTime.now())
                 .avatar(defaultAvatar)
-                .country(registrationUserDTO.getCountry())
-                .city(registrationUserDTO.getCity())
+                .country(registrationDTO.getCountry())
+                .city(registrationDTO.getCity())
                 .build()
         );
     }
@@ -134,6 +139,12 @@ public class UserService {
             }
             user.setCity(updateInfoDTO.getCity());
         }
+    }
+
+    @Transactional
+    public void updatePassword(String email, String password) {
+        User user = getByEmail(email);
+        user.setPassword(password);
     }
 
     @Transactional

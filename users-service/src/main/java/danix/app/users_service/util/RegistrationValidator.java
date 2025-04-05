@@ -1,6 +1,6 @@
 package danix.app.users_service.util;
 
-import danix.app.users_service.dto.RegistrationUserDTO;
+import danix.app.users_service.dto.RegistrationDTO;
 import danix.app.users_service.models.User;
 import danix.app.users_service.repositories.UsersRepository;
 import danix.app.users_service.services.UserService;
@@ -17,12 +17,12 @@ public class RegistrationValidator implements Validator {
 
     @Override
     public boolean supports(Class<?> clazz) {
-        return RegistrationUserDTO.class.equals(clazz);
+        return RegistrationDTO.class.equals(clazz);
     }
 
     @Override
     public void validate(Object target, Errors errors) {
-        RegistrationUserDTO userDTO = (RegistrationUserDTO) target;
+        RegistrationDTO userDTO = (RegistrationDTO) target;
         usersRepository.findByEmail(userDTO.getEmail()).ifPresent(user -> {
             if (user.getStatus() == User.Status.REGISTERED) {
                 errors.rejectValue("email", "", "This email is already in use");

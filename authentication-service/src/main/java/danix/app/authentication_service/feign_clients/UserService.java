@@ -1,4 +1,4 @@
-package danix.app.authentication_service.feignClients;
+package danix.app.authentication_service.feign_clients;
 
 import danix.app.authentication_service.config.FeignConfig;
 import danix.app.authentication_service.dto.RegistrationDTO;
@@ -10,7 +10,7 @@ import java.util.Map;
 @FeignClient(name = "users-service", configuration = FeignConfig.class)
 public interface UserService {
     @GetMapping("/user/authentication")
-    Map<String, Object> getUserAuthentication(@RequestParam String email);
+    Map<String, Object> getUserAuthentication(@RequestParam String email, @RequestParam String key);
 
     @PostMapping("/user/registration")
     void tempRegistration(@RequestBody RegistrationDTO registrationDTO);
@@ -20,4 +20,7 @@ public interface UserService {
 
     @GetMapping("/user/info")
     Map<String, Object> getUserInfo(@RequestHeader("Authorization") String token);
+
+    @PutMapping("/user/password")
+    void resetPassword(@RequestParam String email, @RequestParam String password, @RequestParam String key);
 }
