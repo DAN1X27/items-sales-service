@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -24,13 +25,22 @@ public class EmailKeyService {
         return key != null ? Optional.of(key) : Optional.empty();
     }
 
-    public void save(String email) {
+    public void registrationKey(String email) {
+        String message = "Your registration key, dont show it to anyone: ";
+        sendKey(email, message);
+    }
+
+    public void resetPasswordKey(String email) {
+        String message = "Your reset password key: ";
+        sendKey(email, message);
+    }
+
+    public void sendKey(String email, String message) {
         Random random = new Random();
-        Integer key = random.nextInt(100000, 999999);
+        int key = random.nextInt(100_000, 999_999);
         redisTemplate.opsForValue().set(email, key);
         redisTemplate.expire(email, storageTime, TimeUnit.MINUTES);
-        String message = "Your registration key, dont show it to anyone: " + key;
-        kafkaTemplate.send("message", new KafkaMessage(email, message));
+        kafkaTemplate.send("message", new KafkaMessage(email, message + key));
     }
 
     public void delete(String email) {

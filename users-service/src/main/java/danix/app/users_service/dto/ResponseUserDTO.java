@@ -4,8 +4,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Builder
 @Getter
 @Setter
@@ -15,5 +13,4 @@ public class ResponseUserDTO {
     private Double grade;
     private String country;
     private String city;
-    private List<ResponseCommentDTO> comments;
 }
