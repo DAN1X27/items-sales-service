@@ -27,7 +27,7 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${eureka.server.url}
-client_url: ${client_url}
+allowed_origin: ${allowed_origin}
 server:
   port: 8085
 management:
