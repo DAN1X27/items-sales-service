@@ -5,12 +5,13 @@ import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feignClients.FilesService;
 import danix.app.chats_service.feignClients.UsersService;
 import danix.app.chats_service.models.Chat;
-import danix.app.chats_service.models.Message;
+import danix.app.chats_service.models.ChatMessage;
 import danix.app.chats_service.repositories.ChatsRepository;
 import danix.app.chats_service.repositories.MessagesRepository;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.security.UserDetailsImpl;
 import danix.app.chats_service.util.ChatException;
+import danix.app.chats_service.util.ContentType;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +28,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
 
 @Service
 @RequiredArgsConstructor
@@ -73,32 +76,32 @@ public class ChatService {
 
     @Transactional
     public void sendTextMessage(long chatId, String text, String token) {
-        sendMessage(chatId, text, Message.ContentType.TEXT, token);
+        sendMessage(chatId, text, ContentType.TEXT, token);
     }
 
     @Transactional
     public void sendImage(long chatId, MultipartFile image, String token) {
         String uuid = UUID.randomUUID() + ".jpg";
-        Message message = sendMessage(chatId, uuid, Message.ContentType.IMAGE, token);
+        ChatMessage chatMessage = sendMessage(chatId, uuid, ContentType.IMAGE, token);
         try {
             filesService.saveImage(image, uuid);
         } catch (Exception e) {
-            messagesRepository.delete(message);
+            messagesRepository.delete(chatMessage);
             throw e;
         }
     }
 
     public Map<String, Object> getImage(long id) {
-        Message message = messagesRepository.findById(id)
+        ChatMessage chatMessage = messagesRepository.findById(id)
                 .orElseThrow(() -> new ChatException("Message not found"));
-        checkUserInChat(message.getChat());
-        if (message.getContentType() != Message.ContentType.IMAGE) {
+        checkUserInChat(chatMessage.getChat());
+        if (chatMessage.getContentType() != ContentType.IMAGE) {
             throw new ChatException("Message is not image");
         }
-        return filesService.downloadImage(message.getText());
+        return filesService.downloadImage(chatMessage.getText());
     }
 
-    private Message sendMessage(long chatId, String text, Message.ContentType contentType, String token) {
+    private ChatMessage sendMessage(long chatId, String text, ContentType contentType, String token) {
         User currentUser = getCurrentUser();
         Chat chat = chatsRepository.findById(chatId)
                 .orElseThrow(() -> new ChatException("Chat not found"));
@@ -107,7 +110,7 @@ public class ChatService {
         if (usersService.isBlocked(userId, token)) {
             throw new ChatException("User has blocked you");
         }
-        Message message = messagesRepository.save(Message.builder()
+        ChatMessage chatMessage = messagesRepository.save(ChatMessage.builder()
                 .chat(chat)
                 .text(text)
                 .senderId(currentUser.getId())
@@ -115,24 +118,24 @@ public class ChatService {
                 .contentType(contentType)
                 .build()
         );
-        messagingTemplate.convertAndSend("/topic/chat/" + chat.getId(), convertToResponseMessageDTO(message));
-        return message;
+        messagingTemplate.convertAndSend("/topic/chat/" + chat.getId(), convertToResponseMessageDTO(chatMessage));
+        return chatMessage;
     }
 
     @Transactional
     public void deleteMessage(long id) {
         User currentUser = getCurrentUser();
-        Message message = messagesRepository.findById(id)
+        ChatMessage chatMessage = messagesRepository.findById(id)
                 .orElseThrow(() -> new ChatException("Message not found"));
-        if (message.getSenderId() != currentUser.getId()) {
+        if (chatMessage.getSenderId() != currentUser.getId()) {
             throw new ChatException("You are not owner of this message");
         }
-        messagesRepository.delete(message);
-        if (message.getContentType() == Message.ContentType.IMAGE) {
-            filesService.deleteImage(message.getText());
+        messagesRepository.delete(chatMessage);
+        if (chatMessage.getContentType() == ContentType.IMAGE) {
+            filesService.deleteImage(chatMessage.getText());
         }
-        messagingTemplate.convertAndSend("/topic/chat/" + message.getChat().getId(),
-                Map.of("deleted_message", message.getId()));
+        messagingTemplate.convertAndSend("/topic/chat/" + chatMessage.getChat().getId(),
+                Map.of("deleted_message", chatMessage.getId()));
     }
 
     @Transactional
@@ -140,8 +143,8 @@ public class ChatService {
         Chat chat = chatsRepository.findById(id)
                 .orElseThrow(() -> new ChatException("Chat not found"));
         checkUserInChat(chat);
-        List<String> images = messagesRepository.findAllByChatAndContentType(chat, Message.ContentType.IMAGE).stream()
-                        .map(Message::getText)
+        List<String> images = messagesRepository.findAllByChatAndContentType(chat, ContentType.IMAGE).stream()
+                        .map(ChatMessage::getText)
                         .toList();
         kafkaTemplate.send("deleted_chat", images);
         chatsRepository.deleteById(chat.getId());
@@ -152,9 +155,9 @@ public class ChatService {
         messagingTemplate.convertAndSend("/topic/chat/" + chat.getId(), response);
     }
 
-    private ResponseMessageDTO convertToResponseMessageDTO(Message message) {
-        ResponseMessageDTO messageDTO = mapper.map(message, ResponseMessageDTO.class);
-        if (message.getContentType() != Message.ContentType.TEXT) {
+    private ResponseMessageDTO convertToResponseMessageDTO(ChatMessage chatMessage) {
+        ResponseMessageDTO messageDTO = mapper.map(chatMessage, ResponseMessageDTO.class);
+        if (chatMessage.getContentType() != ContentType.TEXT) {
             messageDTO.setText(null);
         }
         return messageDTO;
@@ -165,11 +168,5 @@ public class ChatService {
         if (chat.getUser1Id() != currentUser.getId() && chat.getUser2Id() != currentUser.getId()) {
             throw new ChatException("You are not in this chat");
         }
-    }
-
-    public static User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        return userDetails.authentication();
     }
 }

@@ -1,9 +1,8 @@
 package danix.app.chats_service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import danix.app.chats_service.models.Message;
-import lombok.Getter;
-import lombok.Setter;
+import danix.app.chats_service.util.ContentType;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +11,7 @@ import java.time.LocalDateTime;
 public class ResponseMessageDTO {
     private long id;
     @JsonProperty("content_type")
-    private Message.ContentType contentType;
+    private ContentType contentType;
     private String text;
     @JsonProperty("sender_id")
     private long senderId;

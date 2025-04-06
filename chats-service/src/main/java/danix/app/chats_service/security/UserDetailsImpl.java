@@ -9,6 +9,7 @@ import java.util.Collections;
 
 public record UserDetailsImpl(User authentication) implements UserDetails {
 
+    @Override
     public User authentication() {
         return authentication;
     }

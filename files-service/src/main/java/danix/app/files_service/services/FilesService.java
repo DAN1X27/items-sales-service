@@ -55,11 +55,10 @@ public class FilesService {
         }
         try {
             byte[] data = Files.readAllBytes(path);
-            String mediaType = null;
-            switch (type) {
-                case USER_AVATAR, CHAT_IMAGE, ANNOUNCEMENT_IMAGE -> mediaType = "image/jpeg";
-                case CHAT_VIDEO -> mediaType = "video/mp4";
-            }
+            String mediaType = switch (type) {
+                case USER_AVATAR, CHAT_IMAGE, ANNOUNCEMENT_IMAGE -> "image/jpeg";
+                case CHAT_VIDEO -> "video/mp4";
+            };
             return new ResponseFileDTO(data, mediaType);
         } catch (IOException e) {
             LOGGER.error("Error download file - {}", fileName, e);
@@ -78,14 +77,12 @@ public class FilesService {
     }
 
     private String getFilePath(FileType type) {
-        String path = null;
-        switch (type) {
-            case USER_AVATAR -> path = USERS_AVATARS;
-            case CHAT_IMAGE -> path = CHATS_IMAGES;
-            case CHAT_VIDEO -> path = CHATS_VIDEOS;
-            case ANNOUNCEMENT_IMAGE -> path = ANNOUNCEMENTS_IMAGES;
-        }
-        return path;
+        return switch (type) {
+            case USER_AVATAR -> USERS_AVATARS;
+            case CHAT_IMAGE -> CHATS_IMAGES;
+            case CHAT_VIDEO -> CHATS_VIDEOS;
+            case ANNOUNCEMENT_IMAGE -> ANNOUNCEMENTS_IMAGES;
+        };
     }
 
     @KafkaListener(topics = "deleted_chat", groupId = "groupId", containerFactory = "listFactory")

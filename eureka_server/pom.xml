@@ -11,8 +11,6 @@
     <groupId>danix.app</groupId>
     <artifactId>eureka_server</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>hotel-booking-service-eureka-server</name>
-    <description>hotel-booking-service-eureka-server</description>
     <url/>
     <licenses>
         <license/>

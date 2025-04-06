@@ -66,12 +66,7 @@ public class ChatsController {
 
     @GetMapping("/image/{id}")
     public ResponseEntity<?> downloadImage(@PathVariable long id) {
-        Map<String, Object> imageData = chatService.getImage(id);
-        byte[] body = Base64.getDecoder().decode((String) imageData.get("data"));
-        MediaType mediaType = MediaType.parseMediaType((String) imageData.get("mediaType"));
-        return ResponseEntity.status(HttpStatus.OK)
-                .contentType(mediaType)
-                .body(body);
+        return convertImageToResponseEntity(chatService.getImage(id));
     }
 
     @DeleteMapping("/message/{id}")
@@ -83,5 +78,13 @@ public class ChatsController {
     @ExceptionHandler
     public ResponseEntity<ErrorResponse> handleException(ChatException e) {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
+    }
+
+    static ResponseEntity<?> convertImageToResponseEntity(Map<String, Object> imageData) {
+        byte[] body = Base64.getDecoder().decode((String) imageData.get("data"));
+        MediaType mediaType = MediaType.parseMediaType((String) imageData.get("mediaType"));
+        return ResponseEntity.status(HttpStatus.OK)
+                .contentType(mediaType)
+                .body(body);
     }
 }

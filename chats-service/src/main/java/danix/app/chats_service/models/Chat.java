@@ -23,7 +23,7 @@ public class Chat {
     private long user2Id;
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
-    private List<Message> messages;
+    private List<ChatMessage> chatMessages;
 
     public Chat(long user1Id, long user2Id) {
         this.user1Id = user1Id;
