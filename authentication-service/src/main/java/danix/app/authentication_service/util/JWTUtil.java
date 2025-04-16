@@ -15,39 +15,40 @@ import java.util.UUID;
 @Component
 public class JWTUtil {
 
-    private final String SECRET;
+	private final String SECRET;
 
-    public JWTUtil(@Value("${jwt_secret}") String SECRET) {
-        this.SECRET = SECRET;
-    }
+	public JWTUtil(@Value("${jwt_secret}") String SECRET) {
+		this.SECRET = SECRET;
+	}
 
-    public String generateToken(String email) {
-        Date expirationDate = Date.from(ZonedDateTime.now().plusDays(14).toInstant());
-        return JWT.create()
-                .withSubject("User details")
-                .withClaim("email", email)
-                .withJWTId(UUID.randomUUID().toString())
-                .withIssuedAt(new Date())
-                .withIssuer("items-sales-service")
-                .withExpiresAt(expirationDate)
-                .sign(Algorithm.HMAC256(SECRET));
-    }
+	public String generateToken(String email) {
+		Date expirationDate = Date.from(ZonedDateTime.now().plusDays(14).toInstant());
+		return JWT.create()
+			.withSubject("User details")
+			.withClaim("email", email)
+			.withJWTId(UUID.randomUUID().toString())
+			.withIssuedAt(new Date())
+			.withIssuer("items-sales-service")
+			.withExpiresAt(expirationDate)
+			.sign(Algorithm.HMAC256(SECRET));
+	}
 
-    public String getEmailFromToken(String token) throws JWTVerificationException {
-        JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET))
-                .withSubject("User details")
-                .withIssuer("items-sales-service")
-                .build();
-        DecodedJWT jwt = verifier.verify(token);
-        return jwt.getClaim("email").asString();
-    }
+	public String getEmailFromToken(String token) throws JWTVerificationException {
+		JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET))
+			.withSubject("User details")
+			.withIssuer("items-sales-service")
+			.build();
+		DecodedJWT jwt = verifier.verify(token);
+		return jwt.getClaim("email").asString();
+	}
 
-    public String getIdFromToken(String token) throws JWTVerificationException {
-        JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET))
-                .withSubject("User details")
-                .withIssuer("items-sales-service")
-                .build();
-        DecodedJWT jwt = verifier.verify(token);
-        return jwt.getClaim("jti").asString();
-    }
+	public String getIdFromToken(String token) throws JWTVerificationException {
+		JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET))
+			.withSubject("User details")
+			.withIssuer("items-sales-service")
+			.build();
+		DecodedJWT jwt = verifier.verify(token);
+		return jwt.getClaim("jti").asString();
+	}
+
 }

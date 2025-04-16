@@ -10,17 +10,20 @@ import java.util.List;
 
 @Repository
 public interface AnnouncementsRepository extends JpaRepository<Announcement, Long> {
-    List<Announcement> findAllByOwnerId(Long id);
 
-    List<Announcement> findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(String title, String country,
-                                                             String city, List<String> types, Pageable pageable);
+	List<Announcement> findAllByOwnerId(Long id);
 
-    List<Announcement> findAllByCreatedAtBefore(LocalDateTime time);
+	List<Announcement> findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(String title, String country,
+			String city, List<String> types, Pageable pageable);
 
-    List<Announcement> findAllByCountryAndCityAndTypeIn(String county, String city, Pageable pageable, List<String> types);
+	List<Announcement> findAllByCreatedAtBefore(LocalDateTime time);
 
-    List<Announcement> findAllByCountryAndCity(String country, String city, Pageable pageable);
+	List<Announcement> findAllByCountryAndCityAndTypeIn(String county, String city, Pageable pageable,
+			List<String> types);
 
-    List<Announcement> findAllByTitleContainsIgnoreCaseAndCountryAndCity(String title, String country,
-                                                                         String city, Pageable pageable);
+	List<Announcement> findAllByCountryAndCity(String country, String city, Pageable pageable);
+
+	List<Announcement> findAllByTitleContainsIgnoreCaseAndCountryAndCity(String title, String country, String city,
+			Pageable pageable);
+
 }

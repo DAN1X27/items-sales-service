@@ -11,8 +11,7 @@
     <groupId>danix.app</groupId>
     <artifactId>files-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>items-sales-files-service</name>
-    <description>items-sales-files-service</description>
+    <name>files-service</name>
     <url/>
     <licenses>
         <license/>
@@ -99,6 +98,20 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+                <version>0.0.43</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <inherited>true</inherited>
+                        <goals>
+                            <goal>validate</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

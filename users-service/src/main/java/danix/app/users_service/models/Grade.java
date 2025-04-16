@@ -12,17 +12,18 @@ import lombok.*;
 @NoArgsConstructor
 public class Grade {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private int stars;
+	private int stars;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
-    private User owner;
+	@ManyToOne
+	@JoinColumn(name = "owner_id", referencedColumnName = "id")
+	private User owner;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+	@ManyToOne
+	@JoinColumn(name = "user_id", referencedColumnName = "id")
+	private User user;
+
 }

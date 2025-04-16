@@ -9,11 +9,12 @@ import lombok.Setter;
 @Setter
 public class UpdatePasswordDTO {
 
-    @NotBlank(message = "Old password must not be empty")
-    @JsonProperty("old_password")
-    private String oldPassword;
+	@NotBlank(message = "Old password must not be empty")
+	@JsonProperty("old_password")
+	private String oldPassword;
 
-    @NotBlank(message = "New password must not be empty")
-    @JsonProperty("new_password")
-    private String newPassword;
+	@NotBlank(message = "New password must not be empty")
+	@JsonProperty("new_password")
+	private String newPassword;
+
 }

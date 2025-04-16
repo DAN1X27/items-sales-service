@@ -17,22 +17,24 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    private final JwtFilter jwtFilter;
 
-    @Bean
-    public SecurityFilterChain config(HttpSecurity http) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(requests ->
-                        requests
-                                .requestMatchers("/error").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/announcements").permitAll()
-                                .requestMatchers("/announcements/reports", "/announcements/report/{id}",
-                                        "/announcements/{id}/admin").hasRole("ADMIN")
-                                .anyRequest().hasAnyRole("USER", "ADMIN"))
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+	private final JwtFilter jwtFilter;
+
+	@Bean
+	public SecurityFilterChain config(HttpSecurity http) throws Exception {
+		return http.csrf(AbstractHttpConfigurer::disable)
+			.authorizeHttpRequests(requests -> requests
+				.requestMatchers("/error")
+				.permitAll()
+				.requestMatchers("/announcements/reports", "/announcements/report/{id}",
+						"/announcements/{id}/ban")
+				.hasRole("ADMIN")
+				.anyRequest()
+				.hasAnyRole("USER", "ADMIN"))
+			.sessionManagement(session ->
+					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+			.build();
+	}
+
 }

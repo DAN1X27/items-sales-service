@@ -12,13 +12,15 @@ import java.util.Optional;
 
 @Repository
 public interface ChatsRepository extends JpaRepository<Chat, Long> {
-    List<Chat> findAllByUser1IdOrUser2Id(long user1Id, long user2Id);
 
-    Optional<Chat> findByUser1IdAndUser2Id(long user1Id, long user2Id);
+	List<Chat> findAllByUser1IdOrUser2Id(long user1Id, long user2Id);
 
-    Optional<Chat> findById(long id);
+	Optional<Chat> findByUser1IdAndUser2Id(long user1Id, long user2Id);
 
-    @Modifying
-    @Query("delete from Chat c where c.id = :id")
-    void deleteById(@Param("id") long id);
+	Optional<Chat> findById(long id);
+
+	@Modifying
+	@Query("delete from Chat c where c.id = :id")
+	void deleteById(@Param("id") long id);
+
 }
