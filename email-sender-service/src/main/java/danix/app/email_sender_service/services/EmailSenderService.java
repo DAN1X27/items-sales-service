@@ -24,11 +24,11 @@ public class EmailSenderService {
 			MimeMessage mimeMessage = javaMailSender.createMimeMessage();
 			mimeMessage.setFrom(senderEmail);
 			mimeMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
-			mimeMessage.setSubject("Sales service");
+			mimeMessage.setSubject("Items sales service");
 			mimeMessage.setContent(String.format(
 					"""
 					<body style = "color: white; text-align: center">
-					    <h1 style = "color: #000720;">Sales service</h1>
+					    <h1 style = "color: #000720;">Items sales service</h1>
 					    <p style="background-color: #000720; font-size: 25px; display: inline;">%s</p>
 					</body>
 					""", message), "text/html;charset=UTF-8");
