@@ -18,59 +18,61 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
-    private final UserDetailsServiceImpl userDetailsService;
-    private final ChatsRepository chatsRepository;
-    private final SupportChatsRepository supportChatsRepository;
 
-    @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-        assert accessor != null && accessor.getCommand() != null;
-        switch (accessor.getCommand()) {
-            case CONNECT -> {
-                String header = accessor.getFirstNativeHeader("Authorization");
-                UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(header);
-                UsernamePasswordAuthenticationToken token =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-                accessor.setUser(token);
-            }
-            case SUBSCRIBE -> {
-                String dest = accessor.getDestination();
-                Authentication authentication = (Authentication) accessor.getUser();
-                assert authentication != null;
-                UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-                User user = userDetails.authentication();
-                assert dest != null;
-                if (dest.startsWith("/topic/chat/")) {
-                    long id = Long.parseLong(dest.substring(12));
-                    chatsRepository.findById(id).ifPresentOrElse(chat -> {
-                        if (chat.getUser1Id() != user.getId() && chat.getUser2Id() != user.getId()) {
-                            throw new IllegalArgumentException();
-                        }
-                    }, () -> {
-                        throw new IllegalArgumentException();
-                    });
-                } else if (dest.startsWith("/topic/user/")) {
-                    long id = Long.parseLong(dest.substring(12, dest.lastIndexOf('/')));
-                    if (id != user.getId()) {
-                        throw new IllegalArgumentException();
-                    }
-                } else if (dest.startsWith("/topic/support/")) {
-                    long id = Long.parseLong(dest.substring(15));
-                    supportChatsRepository.findById(id).ifPresentOrElse(chat -> {
-                        if (chat.getUserId() != user.getId() && !chat.getAdminId().equals(user.getId())) {
-                            throw new IllegalArgumentException();
-                        }
-                    }, () -> {
-                        throw new IllegalArgumentException();
-                    });
-                }
-            }
-        }
-        return message;
-    }
+	private final UserDetailsServiceImpl userDetailsService;
+
+	private final ChatsRepository chatsRepository;
+
+	private final SupportChatsRepository supportChatsRepository;
+
+	@Override
+	public Message<?> preSend(Message<?> message, MessageChannel channel) {
+		StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+		assert accessor != null && accessor.getCommand() != null;
+		switch (accessor.getCommand()) {
+			case CONNECT -> {
+				String header = accessor.getFirstNativeHeader("Authorization");
+				UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(header);
+				UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userDetails, null,
+						userDetails.getAuthorities());
+				accessor.setUser(token);
+			}
+			case SUBSCRIBE -> {
+				String dest = accessor.getDestination();
+				Authentication authentication = (Authentication) accessor.getUser();
+				assert authentication != null;
+				UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+				User user = userDetails.authentication();
+				assert dest != null;
+				if (dest.startsWith("/topic/chat/")) {
+					long id = Long.parseLong(dest.substring(12));
+					chatsRepository.findById(id).ifPresentOrElse(chat -> {
+						if (chat.getUser1Id() != user.getId() && chat.getUser2Id() != user.getId()) {
+							throw new IllegalArgumentException();
+						}
+					}, () -> {
+						throw new IllegalArgumentException();
+					});
+				}
+				else if (dest.startsWith("/topic/user/")) {
+					long id = Long.parseLong(dest.substring(12, dest.lastIndexOf('/')));
+					if (id != user.getId()) {
+						throw new IllegalArgumentException();
+					}
+				}
+				else if (dest.startsWith("/topic/support/")) {
+					long id = Long.parseLong(dest.substring(15));
+					supportChatsRepository.findById(id).ifPresentOrElse(chat -> {
+						if (chat.getUserId() != user.getId() && !chat.getAdminId().equals(user.getId())) {
+							throw new IllegalArgumentException();
+						}
+					}, () -> {
+						throw new IllegalArgumentException();
+					});
+				}
+			}
+		}
+		return message;
+	}
+
 }

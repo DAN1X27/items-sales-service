@@ -13,6 +13,7 @@ spring:
   kafka:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
+      group-id: ${kafka.group-id}
   config:
     import: 'configserver:'
   cloud:
@@ -45,4 +46,4 @@ management:
     web:
       exposure:
         include: refresh
-protected_endpoints_key: ${protected_endpoints_key}
+access_key: ${access_key}

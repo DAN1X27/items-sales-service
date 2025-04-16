@@ -9,5 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface BannedUsersRepository extends JpaRepository<BannedUser, Integer> {
-    Optional<BannedUser> findByUser(User user);
+
+	Optional<BannedUser> findByUser(User user);
+
 }

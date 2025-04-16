@@ -12,20 +12,25 @@ import lombok.Setter;
 @NoArgsConstructor
 public class BlockedUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
-    private User owner;
+	@ManyToOne
+	@JoinColumn(name = "owner_id", referencedColumnName = "id")
+	private User owner;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+	@ManyToOne
+	@JoinColumn(name = "user_id", referencedColumnName = "id")
+	private User user;
 
-    public BlockedUser(User ownerId, User userId) {
-        this.owner = ownerId;
-        this.user = userId;
-    }
+	public BlockedUser(User ownerId, User userId) {
+		this.owner = ownerId;
+		this.user = userId;
+	}
+
+	public Long getUserId() {
+		return user.getId();
+	}
+
 }

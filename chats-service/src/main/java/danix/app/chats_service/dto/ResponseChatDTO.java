@@ -9,7 +9,10 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class ResponseChatDTO {
-    private long id;
-    @JsonProperty("user_id")
-    private long userId;
+
+	private long id;
+
+	@JsonProperty("user_id")
+	private long userId;
+
 }

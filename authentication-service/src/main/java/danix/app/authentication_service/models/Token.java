@@ -19,12 +19,13 @@ import java.util.Date;
 @NoArgsConstructor
 public class Token {
 
-    @Id
-    private String id;
+	@Id
+	private String id;
 
-    @Column(name = "user_id")
-    private Long userId;
+	@Column(name = "user_id")
+	private Long userId;
 
-    @Column(name = "expired_date")
-    private Date expiredDate;
+	@Column(name = "expired_date")
+	private Date expiredDate;
+
 }

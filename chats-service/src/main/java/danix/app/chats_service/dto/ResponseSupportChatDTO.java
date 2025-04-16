@@ -7,9 +7,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ResponseSupportChatDTO{
-    private long id;
-    private SupportChat.Status status;
-    @JsonProperty("user_id")
-    private long userId;
+public class ResponseSupportChatDTO {
+
+	private long id;
+
+	@JsonProperty("user_id")
+	private long userId;
+
+	private SupportChat.Status status;
+
 }

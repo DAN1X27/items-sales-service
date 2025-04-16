@@ -14,20 +14,21 @@ import java.time.LocalDateTime;
 @Setter
 public class Report {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer id;
 
-    private String cause;
+	private String cause;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+	@ManyToOne
+	@JoinColumn(name = "user_id", referencedColumnName = "id")
+	private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "sender_id", referencedColumnName = "id")
-    private User sender;
+	@ManyToOne
+	@JoinColumn(name = "sender_id", referencedColumnName = "id")
+	private User sender;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+	@Column(name = "created_at")
+	private LocalDateTime createdAt;
+
 }

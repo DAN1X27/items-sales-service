@@ -7,14 +7,18 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Builder
 @Getter
 @Setter
 public class ResponseCommentDTO {
-    private Long id;
-    private String text;
-    @JsonProperty("sender_id")
-    private Long senderId;
-    @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+
+	private Long id;
+
+	private String text;
+
+	@JsonProperty("sender_id")
+	private Long senderId;
+
+	@JsonProperty("created_at")
+	private LocalDateTime createdAt;
+
 }

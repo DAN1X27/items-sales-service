@@ -10,39 +10,37 @@ import org.springframework.data.redis.core.RedisTemplate;
 @Configuration
 public class RedisConfig {
 
-    private final String HOST;
-    private final int PORT;
-    private final String PASSWORD;
-    private final String USERNAME;
-    private final int DATA_BASE;
+	@Value("${redis.host}")
+	private String host;
 
-    public RedisConfig(@Value("${redis.host}") String HOST,
-                       @Value("${redis.port}") int PORT,
-                       @Value("${redis.password}") String PASSWORD,
-                       @Value("${redis.username}") String USERNAME,
-                       @Value("${redis.database}") int DATA_BASE) {
-        this.HOST = HOST;
-        this.PORT = PORT;
-        this.PASSWORD = PASSWORD;
-        this.USERNAME = USERNAME;
-        this.DATA_BASE = DATA_BASE;
-    }
+	@Value("${redis.port}")
+	private int port;
 
-    @Bean
-    JedisConnectionFactory jedisConnectionFactory() {
-        RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
-        configuration.setPort(PORT);
-        configuration.setHostName(HOST);
-        configuration.setDatabase(DATA_BASE);
-        configuration.setUsername(USERNAME);
-        configuration.setPassword(PASSWORD);
-        return new JedisConnectionFactory(configuration);
-    }
+	@Value("${redis.password}")
+	private String password;
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate() {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(jedisConnectionFactory());
-        return template;
-    }
+	@Value("${redis.username}")
+	private String username;
+
+	@Value("${redis.database}")
+	private int database;
+
+	@Bean
+	public JedisConnectionFactory jedisConnectionFactory() {
+		RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
+		configuration.setPort(port);
+		configuration.setHostName(host);
+		configuration.setDatabase(database);
+		configuration.setUsername(username);
+		configuration.setPassword(password);
+		return new JedisConnectionFactory(configuration);
+	}
+
+	@Bean
+	public RedisTemplate<String, Object> redisTemplate() {
+		RedisTemplate<String, Object> template = new RedisTemplate<>();
+		template.setConnectionFactory(jedisConnectionFactory());
+		return template;
+	}
+
 }

@@ -11,13 +11,20 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResponseDTO {
-    private Long id;
-    private String title;
-    private Double price;
-    @JsonProperty("image_id")
-    private Long imageId;
-    @JsonProperty("watches")
-    int watchesCount;
-    @JsonProperty("likes")
-    int likesCount;
+
+	private Long id;
+
+	private String title;
+
+	private Double price;
+
+	@JsonProperty("image_id")
+	private Long imageId;
+
+	@JsonProperty("watches")
+	int watchesCount;
+
+	@JsonProperty("likes")
+	int likesCount;
+
 }

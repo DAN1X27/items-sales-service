@@ -22,38 +22,42 @@ import static org.springframework.messaging.simp.SimpMessageType.*;
 @EnableWebSocketSecurity
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    private final AuthChannelInterceptorAdapter authChannelInterceptorAdapter;
-    @Value("${allowed_origin}")
-    private String allowedOrigin;
 
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
-        registry.setApplicationDestinationPrefixes("/app");
-    }
+	private final AuthChannelInterceptorAdapter authChannelInterceptorAdapter;
 
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
-                .setAllowedOrigins(allowedOrigin)
-                .withSockJS();
-    }
+	@Value("${allowed_origin}")
+	private String allowedOrigin;
 
-    @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(authChannelInterceptorAdapter, csrfInterceptor());
-    }
+	@Override
+	public void configureMessageBroker(MessageBrokerRegistry registry) {
+		registry.enableSimpleBroker("/topic");
+		registry.setApplicationDestinationPrefixes("/app");
+	}
 
-    @Bean
-    public AuthorizationManager<Message<?>> messageAuthorizationManager(MessageMatcherDelegatingAuthorizationManager.Builder messages) {
-        return messages
-                .simpTypeMatchers(CONNECT, DISCONNECT, UNSUBSCRIBE).permitAll()
-                .anyMessage().authenticated()
-                .build();
-    }
+	@Override
+	public void registerStompEndpoints(StompEndpointRegistry registry) {
+		registry.addEndpoint("/ws").setAllowedOrigins(allowedOrigin).withSockJS();
+	}
 
-    @Bean(name = "csrfChannelInterceptor")
-    ChannelInterceptor csrfInterceptor() {
-        return new ChannelInterceptor() {};
-    }
+	@Override
+	public void configureClientInboundChannel(ChannelRegistration registration) {
+		registration.interceptors(authChannelInterceptorAdapter, csrfInterceptor());
+	}
+
+	@Bean
+	public AuthorizationManager<Message<?>> messageAuthorizationManager(
+			MessageMatcherDelegatingAuthorizationManager.Builder messages) {
+		return messages.simpTypeMatchers(CONNECT, DISCONNECT, UNSUBSCRIBE)
+			.permitAll()
+			.anyMessage()
+			.authenticated()
+			.build();
+	}
+
+	@Bean(name = "csrfChannelInterceptor")
+	ChannelInterceptor csrfInterceptor() {
+		return new ChannelInterceptor() {
+		};
+	}
+
 }

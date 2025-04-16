@@ -9,5 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface ReportsRepository extends JpaRepository<Report, Integer> {
-    Optional<Report> findByUserAndSender(User user, User sender);
+
+	Optional<Report> findByUserAndSender(User user, User sender);
+
 }
