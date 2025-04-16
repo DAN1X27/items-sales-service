@@ -81,7 +81,8 @@ public class ChatsService {
 			throw new ChatException("Chat already exists");
 		}, () -> {
 			Chat chat = chatsRepository.save(new Chat(currentUser.getId(), userId));
-			messagingTemplate.convertAndSend("/topic/user/" + userId + "/main", Map.of("created_chat", chat.getId()));
+			messagingTemplate.convertAndSend("/topic/user/" + userId + "/main",
+					Map.of("created_chat", chat.getId()));
 		});
 	}
 
