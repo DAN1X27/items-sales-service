@@ -15,40 +15,44 @@ import java.util.List;
 @NoArgsConstructor
 public class Announcement {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private String title;
+	private String title;
 
-    private String description;
+	private String description;
 
-    private Double price;
+	private Double price;
 
-    @Column(name = "owner_id")
-    private Long ownerId;
+	@Column(name = "owner_id")
+	private Long ownerId;
 
-    private String type;
+	private String type;
 
-    @Column(name = "phone_number")
-    private String phoneNumber;
+	@Column(name = "phone_number")
+	private String phoneNumber;
 
-    private String country;
+	private String country;
 
-    private String city;
+	private String city;
 
-    @Column(name = "likes")
-    private int likesCount;
+	@Column(name = "likes")
+	private int likesCount;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+	@Column(name = "watches")
+	private int watchesCount;
 
-    @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL)
-    private List<AnnouncementImage> images;
+	@Column(name = "created_at")
+	private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "announcement")
-    private List<AnnouncementLike> likes;
+	@OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL)
+	private List<Image> images;
 
-    @OneToMany(mappedBy = "announcement")
-    private List<AnnouncementWatch> watches;
+	@OneToMany(mappedBy = "announcement")
+	private List<Like> likes;
+
+	@OneToMany(mappedBy = "announcement")
+	private List<Watch> watches;
+
 }

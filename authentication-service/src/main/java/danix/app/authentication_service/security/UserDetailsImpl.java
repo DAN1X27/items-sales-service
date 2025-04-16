@@ -7,24 +7,20 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
-public record UserDetailsImpl(UserAuthentication userAuthentication) implements UserDetails {
+public record UserDetailsImpl(User user) implements UserDetails {
 
-    public UserAuthentication userAuthentication() {
-        return userAuthentication;
-    }
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return Collections.singleton(new SimpleGrantedAuthority(user.getRole()));
+	}
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(new SimpleGrantedAuthority(userAuthentication.getRole()));
-    }
+	@Override
+	public String getPassword() {
+		return user.getPassword();
+	}
 
-    @Override
-    public String getPassword() {
-        return userAuthentication.getPassword();
-    }
-
-    @Override
-    public String getUsername() {
-        return userAuthentication.getEmail();
-    }
+	@Override
+	public String getUsername() {
+		return user.getEmail();
+	}
 }

@@ -20,35 +20,35 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
-    private final JwtFilter jwtFilter;
+	private final UserDetailsServiceImpl userDetailsService;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(requests ->
-                        requests
-                                .requestMatchers("/auth/key", "/auth/email/update")
-                                .hasAnyRole("USER", "ADMIN")
-                                .requestMatchers("/auth/tokens/").hasRole("ADMIN")
-                                .anyRequest().permitAll())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+	private final JWTFilter jwtFilter;
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		return http.csrf(AbstractHttpConfigurer::disable)
+			.authorizeHttpRequests(requests -> requests
+				.requestMatchers("/auth/email/update/key", "/auth/email/update", "/auth/logout")
+				.hasAnyRole("USER", "ADMIN")
+				.anyRequest()
+				.permitAll())
+			.sessionManagement(session ->
+					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+			.build();
+	}
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	public AuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+		authProvider.setUserDetailsService(userDetailsService);
+		authProvider.setPasswordEncoder(passwordEncoder());
+		return authProvider;
+	}
+
 }

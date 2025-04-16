@@ -8,6 +8,10 @@ spring:
       uri: ${config_uri}
       username: ${config_username}
       password: ${config_password}
+  servlet:
+    multipart:
+      max-file-size: ${max_file_size}
+      max-request-size: ${max_file_size}
   kafka:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
@@ -26,6 +30,7 @@ eureka:
     service-url:
       defaultZone: ${eureka.server.url}
 allowed_origin: ${allowed_origin}
+access_key: ${access_key}
 server:
   port: 8085
 management:

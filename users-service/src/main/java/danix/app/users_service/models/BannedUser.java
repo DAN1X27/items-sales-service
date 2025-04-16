@@ -12,18 +12,23 @@ import lombok.Setter;
 @Setter
 public class BannedUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer id;
 
-    private String cause;
+	private String cause;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private User user;
+	@OneToOne
+	@JoinColumn(name = "user_id", referencedColumnName = "id")
+	private User user;
 
-    public BannedUser(String cause, User user) {
-        this.cause = cause;
-        this.user = user;
-    }
+	public BannedUser(String cause, User user) {
+		this.cause = cause;
+		this.user = user;
+	}
+
+	public Long getUserId() {
+		return user.getId();
+	}
+
 }

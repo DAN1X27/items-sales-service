@@ -11,8 +11,7 @@
 	<groupId>danix.app</groupId>
 	<artifactId>email-sender-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>items-sales-email-sender-service</name>
-	<description>Demo project for Spring Boot</description>
+	<name>email-sender-service</name>
 	<url/>
 	<licenses>
 		<license/>
@@ -53,6 +52,11 @@
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
@@ -88,6 +92,32 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>io.spring.javaformat</groupId>
+				<artifactId>spring-javaformat-maven-plugin</artifactId>
+				<version>0.0.43</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<inherited>true</inherited>
+						<goals>
+							<goal>validate</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

@@ -12,16 +12,17 @@ import lombok.*;
 @NoArgsConstructor
 public class Report {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "announcement_id", referencedColumnName = "id")
-    private Announcement announcement;
+	@ManyToOne
+	@JoinColumn(name = "announcement_id", referencedColumnName = "id")
+	private Announcement announcement;
 
-    private String cause;
+	private String cause;
 
-    @Column(name = "user_id")
-    private Long userId;
+	@Column(name = "sender_id")
+	private Long senderId;
+
 }

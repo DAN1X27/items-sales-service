@@ -24,7 +24,7 @@ public class GatewayServiceApplication {
         return builder.routes()
                 .route("authentication-service", r -> r.path("/auth/**")
                         .uri("lb://authentication-service"))
-                .route("users-service", r -> r.path("/user/**")
+                .route("users-service", r -> r.path("/users/**")
                         .uri("lb://users-service"))
                 .route("announcements-service", r -> r.path("/announcements/**")
                         .uri("lb://announcements-service"))

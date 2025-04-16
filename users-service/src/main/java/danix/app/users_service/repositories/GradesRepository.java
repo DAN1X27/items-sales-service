@@ -9,5 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface GradesRepository extends JpaRepository<Grade, Long> {
-    Optional<Grade> findByUserAndOwner(User user, User owner);
+
+	Optional<Grade> findByUserAndOwner(User user, User owner);
+
 }

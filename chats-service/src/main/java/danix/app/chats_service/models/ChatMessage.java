@@ -13,25 +13,26 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatMessage {
+public class ChatMessage implements Message {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private long id;
 
-    private String text;
+	private String text;
 
-    @Column(name = "sender_id")
-    private long senderId;
+	@Column(name = "sender_id")
+	private long senderId;
 
-    @ManyToOne
-    @JoinColumn(name = "chat_id", referencedColumnName = "id")
-    private Chat chat;
+	@ManyToOne
+	@JoinColumn(name = "chat_id", referencedColumnName = "id")
+	private Chat chat;
 
-    @Column(name = "sent_time")
-    private LocalDateTime sentTime;
+	@Column(name = "sent_time")
+	private LocalDateTime sentTime;
 
-    @Column(name = "content_type")
-    @Enumerated(value = EnumType.STRING)
-    private ContentType contentType;
+	@Column(name = "content_type")
+	@Enumerated(value = EnumType.STRING)
+	private ContentType contentType;
+
 }

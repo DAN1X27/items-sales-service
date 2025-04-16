@@ -10,9 +10,10 @@ import java.util.Date;
 @Repository
 public interface TokensRepository extends JpaRepository<Token, String> {
 
-    @Modifying
-    void deleteAllByUserId(Long id);
+	@Modifying
+	void deleteAllByUserId(Long id);
 
-    @Modifying
-    void deleteAllByExpiredDateBefore(Date date);
+	@Modifying
+	void deleteAllByExpiredDateBefore(Date date);
+
 }

@@ -13,12 +13,13 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class DeleteTemporalRegisteredUsersTask {
 
-    private final UsersRepository usersRepository;
+	private final UsersRepository usersRepository;
 
-    @Transactional
-    @Scheduled(cron = "@midnight")
-    public void run() {
-        usersRepository.deleteAllByStatusAndRegisteredAtBefore(User.Status.TEMPORALLY_REGISTERED,
-                LocalDateTime.now().minusDays(1));
-    }
+	@Transactional
+	@Scheduled(cron = "@midnight")
+	public void run() {
+		usersRepository.deleteAllByStatusAndRegisteredAtBefore(User.Status.TEMPORALLY_REGISTERED,
+				LocalDateTime.now().minusDays(1));
+	}
+
 }

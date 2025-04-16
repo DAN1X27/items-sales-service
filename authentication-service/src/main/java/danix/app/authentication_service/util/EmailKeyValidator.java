@@ -1,7 +1,7 @@
 package danix.app.authentication_service.util;
 
 import danix.app.authentication_service.dto.EmailKey;
-import danix.app.authentication_service.services.EmailKeyService;
+import danix.app.authentication_service.services.EmailKeysService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -11,20 +11,21 @@ import org.springframework.validation.Validator;
 @RequiredArgsConstructor
 public class EmailKeyValidator implements Validator {
 
-    private final EmailKeyService emailKeyService;
+	private final EmailKeysService emailKeysService;
 
-    @Override
-    public boolean supports(Class<?> clazz) {
-        return EmailKey.class.equals(clazz);
-    }
+	@Override
+	public boolean supports(Class<?> clazz) {
+		return EmailKey.class.equals(clazz);
+	}
 
-    @Override
-    public void validate(Object target, Errors errors) {
-        EmailKey keyDTO = (EmailKey) target;
-        emailKeyService.getByEmail(keyDTO.email()).ifPresentOrElse(key -> {
-            if (!key.equals(keyDTO.key())) {
-                errors.rejectValue("key", "", "Incorrect key");
-            }
-        }, () -> errors.rejectValue("email", "", "Email not found"));
-    }
+	@Override
+	public void validate(Object target, Errors errors) {
+		EmailKey keyDTO = (EmailKey) target;
+		emailKeysService.getByEmail(keyDTO.getEmail()).ifPresentOrElse(key -> {
+			if (!key.equals(keyDTO.getKey())) {
+				errors.rejectValue("key", "", "Incorrect key");
+			}
+		}, () -> errors.rejectValue("email", "", "Email not found"));
+	}
+
 }

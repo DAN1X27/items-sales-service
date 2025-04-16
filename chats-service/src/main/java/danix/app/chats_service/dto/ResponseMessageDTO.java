@@ -9,12 +9,18 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class ResponseMessageDTO {
-    private long id;
-    @JsonProperty("content_type")
-    private ContentType contentType;
-    private String text;
-    @JsonProperty("sender_id")
-    private long senderId;
-    @JsonProperty("sent_time")
-    private LocalDateTime sentTime;
+
+	private long id;
+
+	@JsonProperty("content_type")
+	private ContentType contentType;
+
+	private String text;
+
+	@JsonProperty("sender_id")
+	private long senderId;
+
+	@JsonProperty("sent_time")
+	private LocalDateTime sentTime;
+
 }

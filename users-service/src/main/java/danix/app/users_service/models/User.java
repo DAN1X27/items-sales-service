@@ -15,53 +15,60 @@ import java.util.List;
 @Setter
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private String username;
+	private String username;
 
-    private String password;
+	private String password;
 
-    private String email;
+	private String email;
 
-    @Column(name = "registered_at")
-    private LocalDateTime registeredAt;
+	@Column(name = "registered_at")
+	private LocalDateTime registeredAt;
 
-    @Enumerated(EnumType.STRING)
-    private Role role;
+	@Enumerated(EnumType.STRING)
+	private Role role;
 
-    @Enumerated(EnumType.STRING)
-    private Status status;
+	@Enumerated(EnumType.STRING)
+	private Status status;
 
-    private String avatar;
+	private String avatar;
 
-    private String country;
+	private String country;
 
-    private String city;
+	private String city;
 
-    @OneToMany(mappedBy = "user")
-    private List<Comment> comments;
+	@OneToMany(mappedBy = "user")
+	private List<Comment> comments;
 
-    @OneToMany(mappedBy = "owner")
-    private List<Comment> commentsByUser;
+	@OneToMany(mappedBy = "owner")
+	private List<Comment> commentsByUser;
 
-    @OneToMany(mappedBy = "user")
-    private List<Grade> grades;
+	@OneToMany(mappedBy = "user")
+	private List<Grade> grades;
 
-    @OneToMany(mappedBy = "owner")
-    private List<Grade> gradesByUser;
+	@OneToMany(mappedBy = "owner")
+	private List<Grade> gradesByUser;
 
-    @OneToMany(mappedBy = "owner")
-    private List<BlockedUser> blockedUsers;
+	@OneToMany(mappedBy = "owner")
+	private List<BlockedUser> blockedUsers;
 
-    public enum Status {
-        REGISTERED,
-        TEMPORALLY_REGISTERED
-    }
+	public enum Status {
 
-    public enum Role {
-        ROLE_USER,
-        ROLE_ADMIN
-    }
+		REGISTERED,
+
+		TEMPORALLY_REGISTERED
+
+	}
+
+	public enum Role {
+
+		ROLE_USER,
+
+		ROLE_ADMIN
+
+	}
+
 }

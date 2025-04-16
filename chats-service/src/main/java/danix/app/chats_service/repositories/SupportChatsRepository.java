@@ -13,13 +13,15 @@ import java.util.Optional;
 
 @Repository
 public interface SupportChatsRepository extends JpaRepository<SupportChat, Long> {
-    Optional<SupportChat> findByUserIdAndStatusIn(long userId, List<SupportChat.Status> statuses);
 
-    List<SupportChat> findAllByUserIdOrAdminId(long userId, long adminId);
+	Optional<SupportChat> findByUserIdAndStatusIn(long userId, List<SupportChat.Status> statuses);
 
-    List<SupportChat> findAllByStatus(SupportChat.Status status, Pageable pageable);
+	List<SupportChat> findAllByUserIdOrAdminId(long userId, long adminId);
 
-    @Modifying
-    @Query("delete from SupportChat c where c.id = :id")
-    void deleteById(@Param("id") long id);
+	List<SupportChat> findAllByStatus(SupportChat.Status status, Pageable pageable);
+
+	@Modifying
+	@Query("delete from SupportChat c where c.id = :id")
+	void deleteById(@Param("id") long id);
+
 }

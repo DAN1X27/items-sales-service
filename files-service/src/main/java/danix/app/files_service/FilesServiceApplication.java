@@ -8,8 +8,8 @@ import org.springframework.kafka.annotation.EnableKafka;
 @EnableKafka
 public class FilesServiceApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(FilesServiceApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(FilesServiceApplication.class, args);
+	}
 
 }

@@ -9,9 +9,14 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ResponseReportDTO {
-    private Long id;
-    private ResponseDTO announcement;
-    private String cause;
-    @JsonProperty("sender_id")
-    private Long senderId;
+
+	private Long id;
+
+	private String cause;
+
+	@JsonProperty("sender_id")
+	private Long senderId;
+
+	private ResponseDTO announcement;
+
 }

@@ -9,22 +9,22 @@ import java.util.Collections;
 
 public record UserDetailsImpl(User authentication) implements UserDetails {
 
-    public User authentication() {
-        return authentication;
-    }
+	public User authentication() {
+		return authentication;
+	}
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(new SimpleGrantedAuthority(authentication.getRole()));
-    }
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return Collections.singleton(new SimpleGrantedAuthority(authentication.getRole()));
+	}
 
-    @Override
-    public String getPassword() {
-        return "";
-    }
+	@Override
+	public String getPassword() {
+		return "";
+	}
 
-    @Override
-    public String getUsername() {
-        return authentication.getEmail();
-    }
+	@Override
+	public String getUsername() {
+		return authentication.getEmail();
+	}
 }

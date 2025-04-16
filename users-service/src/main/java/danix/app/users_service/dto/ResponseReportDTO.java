@@ -7,10 +7,15 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
 public class ResponseReportDTO {
-    private Integer id;
-    private String cause;
-    @JsonProperty("user_id")
-    private Long userId;
+
+	private Integer id;
+
+	private String cause;
+
+	@JsonProperty("user_id")
+	private Long userId;
+
+	@JsonProperty("sender_id")
+	private Long senderId;
 }
