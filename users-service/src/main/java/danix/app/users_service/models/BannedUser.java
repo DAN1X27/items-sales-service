@@ -27,8 +27,4 @@ public class BannedUser {
 		this.user = user;
 	}
 
-	public Long getUserId() {
-		return user.getId();
-	}
-
 }
