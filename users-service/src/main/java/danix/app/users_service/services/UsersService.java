@@ -268,11 +268,12 @@ public class UsersService {
 		});
 	}
 
-	public DataDTO<List<Long>> getBannedUsers(int page, int count) {
-		return new DataDTO<>(bannedUsersRepository
+	public List<ResponseBannedUserDTO> getBannedUsers(int page, int count) {
+		return bannedUsersRepository
 				.findAll(PageRequest.of(page, count, Sort.by(Sort.Direction.DESC, "id"))).stream()
-					.map(BannedUser::getUserId)
-					.toList());
+					.map(bannedUser ->
+							new ResponseBannedUserDTO(bannedUser.getUser().getId(), bannedUser.getCause()))
+					.toList();
 	}
 
 	@Transactional
@@ -327,12 +328,12 @@ public class UsersService {
 			});
 	}
 
-	public DataDTO<List<Long>> getBlockedUsers(int page, int count) {
-		return new DataDTO<>(blockedUsersRepository
+	public List<DataDTO<Long>> getBlockedUsers(int page, int count) {
+		return blockedUsersRepository
 				.findAllByOwner(getCurrentUser(), PageRequest.of(page, count,
 						Sort.by(Sort.Direction.DESC, "id"))).stream()
-					.map(BlockedUser::getUserId)
-					.toList());
+					.map(blockedUser -> new DataDTO<>(blockedUser.getUserId()))
+					.toList();
 	}
 
 	public DataDTO<Boolean> isBlockedByUser(Long id) {

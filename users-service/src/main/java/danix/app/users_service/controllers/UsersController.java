@@ -176,7 +176,7 @@ public class UsersController {
 	}
 
 	@GetMapping("/banned")
-	public ResponseEntity<DataDTO<List<Long>>> getBannedUsers(@RequestParam int page, @RequestParam int count) {
+	public ResponseEntity<List<ResponseBannedUserDTO>> getBannedUsers(@RequestParam int page, @RequestParam int count) {
 		return new ResponseEntity<>(usersService.getBannedUsers(page, count), HttpStatus.OK);
 	}
 
@@ -207,7 +207,7 @@ public class UsersController {
 	}
 
 	@GetMapping("/blocked")
-	public ResponseEntity<DataDTO<List<Long>>> getBlockedUsers(@RequestParam int page, @RequestParam int count) {
+	public ResponseEntity<List<DataDTO<Long>>> getBlockedUsers(@RequestParam int page, @RequestParam int count) {
 		return new ResponseEntity<>(usersService.getBlockedUsers(page, count), HttpStatus.OK);
 	}
 
