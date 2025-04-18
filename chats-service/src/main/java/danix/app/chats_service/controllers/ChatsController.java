@@ -38,9 +38,9 @@ public class ChatsController {
 	}
 
 	@PostMapping("/{id}")
-	public ResponseEntity<HttpStatus> create(@PathVariable long id, @RequestHeader("Authorization") String token) {
-		chatsService.create(id, token);
-		return new ResponseEntity<>(HttpStatus.CREATED);
+	public ResponseEntity<DataDTO<Long>> create(@PathVariable long id, @RequestHeader("Authorization") String token) {
+
+		return new ResponseEntity<>(chatsService.create(id, token), HttpStatus.CREATED);
 	}
 
 	@DeleteMapping("/{id}")
@@ -70,13 +70,13 @@ public class ChatsController {
 	public ResponseEntity<DataDTO<Long>> sendImage(@PathVariable long id, @RequestParam MultipartFile image,
 			@RequestHeader("Authorization") String token) {
 
-		return new ResponseEntity<>(chatsService.sendImage(id, image, token), HttpStatus.CREATED);
+		return new ResponseEntity<>(chatsService.sendFile(id, image, token, ContentType.IMAGE), HttpStatus.CREATED);
 	}
 
 	@PostMapping("/{id}/video")
 	public ResponseEntity<DataDTO<Long>> sendVideo(@PathVariable long id, @RequestParam MultipartFile video,
 			@RequestHeader("Authorization") String token) {
-		return new ResponseEntity<>(chatsService.sendVideo(id, video, token), HttpStatus.OK);
+		return new ResponseEntity<>(chatsService.sendFile(id, video, token, ContentType.VIDEO), HttpStatus.OK);
 	}
 
 	@GetMapping("/message/{id}/video")
@@ -100,7 +100,7 @@ public class ChatsController {
 		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
 	}
 
-	public static void handleRequestErrors(BindingResult bindingResult) {
+	static void handleRequestErrors(BindingResult bindingResult) {
 		if (bindingResult.hasErrors()) {
 			StringBuilder message = new StringBuilder();
 			bindingResult.getFieldErrors().forEach(error -> message.append(error.getDefaultMessage()).append("; "));

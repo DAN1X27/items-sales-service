@@ -32,12 +32,17 @@ public class KafkaConsumersConfig {
 		props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, "false");
 		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
 		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-		return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JsonDeserializer<>(List.class));
+		return new DefaultKafkaConsumerFactory<>(
+				props,
+				new StringDeserializer(),
+				new JsonDeserializer<>(List.class)
+		);
 	}
 
 	@Bean
 	public ConcurrentKafkaListenerContainerFactory<String, List<String>> listFactory() {
-		ConcurrentKafkaListenerContainerFactory<String, List<String>> factory = new ConcurrentKafkaListenerContainerFactory<>();
+		ConcurrentKafkaListenerContainerFactory<String, List<String>> factory =
+				new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(consumerFactory());
 		return factory;
 	}

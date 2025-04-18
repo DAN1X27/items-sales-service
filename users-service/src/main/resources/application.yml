@@ -40,8 +40,7 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${eureka.server.url}
-access_key: ${protected_endpoints_key}
-protected_paths: /users/authentication, /users/password/reset, /users/email, /users/{id}/email
+access_key: ${access_key}
 management:
   endpoints:
     web:

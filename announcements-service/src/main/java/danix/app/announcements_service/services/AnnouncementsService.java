@@ -117,12 +117,13 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public void save(CreateDTO createDTO, String currency) {
+	public DataDTO<Long> save(CreateDTO createDTO, String currency) {
 		Announcement announcement = announcementMapper.fromCreateDTO(createDTO);
 		announcement.setCreatedAt(LocalDateTime.now());
 		announcement.setOwnerId(getCurrentUser().getId());
 		announcement.setPrice(convertPrice(currency, course -> announcement.getPrice() / course));
 		announcementsRepository.save(announcement);
+		return new DataDTO<>(announcement.getId());
 	}
 
 	public byte[] downloadImage(Long id) {
@@ -189,16 +190,18 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public void report(Long id, String cause) {
+	public DataDTO<Long> report(Long id, String cause) {
 		Announcement announcement = findById(id);
 		Long userId = getCurrentUser().getId();
-		reportsRepository.findByAnnouncementAndSenderId(announcement, userId).ifPresentOrElse(report -> {
+		reportsRepository.findByAnnouncementAndSenderId(announcement, userId).ifPresent(report -> {
 			throw new AnnouncementException("You already send report to this announcement");
-		}, () -> reportsRepository.save(Report.builder()
-						.announcement(announcement)
-						.senderId(userId)
-						.cause(cause)
-						.build()));
+		});
+		Report report = reportsRepository.save(Report.builder()
+			.announcement(announcement)
+			.senderId(userId)
+			.cause(cause)
+			.build());
+		return new DataDTO<>(report.getId());
 	}
 
 	@Transactional
@@ -234,7 +237,9 @@ public class AnnouncementsService {
 	}
 
 	private void deleteImages(Announcement announcement) {
-		List<String> images = announcement.getImages().stream().map(Image::getFileName).toList();
+		List<String> images = announcement.getImages().stream()
+				.map(Image::getFileName)
+				.toList();
 		listKafkaTemplate.send("deleted_announcements_images", images);
 	}
 

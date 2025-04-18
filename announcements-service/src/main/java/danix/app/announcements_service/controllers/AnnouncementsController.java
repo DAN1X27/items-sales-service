@@ -55,11 +55,10 @@ public class AnnouncementsController {
 	}
 
 	@PostMapping
-	public ResponseEntity<HttpStatus> create(@RequestParam(defaultValue = "USD") String currency,
+	public ResponseEntity<DataDTO<Long>> create(@RequestParam(defaultValue = "USD") String currency,
 			@RequestBody @Valid CreateDTO createDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		announcementsService.save(createDTO, currency);
-		return new ResponseEntity<>(HttpStatus.CREATED);
+		return new ResponseEntity<>(announcementsService.save(createDTO, currency), HttpStatus.CREATED);
 	}
 
 	@PostMapping("/{id}/like")
@@ -88,11 +87,10 @@ public class AnnouncementsController {
 	}
 
 	@PostMapping("/{id}/report")
-	public ResponseEntity<HttpStatus> report(@PathVariable Long id,
+	public ResponseEntity<DataDTO<Long>> report(@PathVariable Long id,
 					@RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		announcementsService.report(id, causeDTO.getCause());
-		return new ResponseEntity<>(HttpStatus.CREATED);
+		return new ResponseEntity<>(announcementsService.report(id, causeDTO.getCause()), HttpStatus.CREATED);
 	}
 
 	@PatchMapping("/{id}")
@@ -143,7 +141,8 @@ public class AnnouncementsController {
 	private void handleRequestErrors(BindingResult bindingResult) {
 		if (bindingResult.hasErrors()) {
 			StringBuilder message = new StringBuilder();
-			bindingResult.getFieldErrors().forEach(error -> message.append(error.getDefaultMessage()).append("; "));
+			bindingResult.getFieldErrors()
+					.forEach(error -> message.append(error.getDefaultMessage()).append("; "));
 			throw new AnnouncementException(message.toString());
 		}
 	}

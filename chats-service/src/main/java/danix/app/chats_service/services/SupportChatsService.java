@@ -3,7 +3,6 @@ package danix.app.chats_service.services;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.dto.ResponseSupportChatDTO;
-import danix.app.chats_service.feign.FilesService;
 import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.Message;
@@ -15,7 +14,6 @@ import danix.app.chats_service.security.User;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +36,6 @@ public class SupportChatsService {
 
 	private final SupportChatsMessagesRepository messagesRepository;
 
-	private final FilesService filesService;
-
 	private final SimpMessagingTemplate messagingTemplate;
 
 	private final MessagesService messagesService;
@@ -49,9 +45,6 @@ public class SupportChatsService {
 	private final MessageMapper messageMapper;
 
 	private final ChatMapper chatMapper;
-
-	@Value("${access_key}")
-	private String accessKey;
 
 	public List<ResponseSupportChatDTO> findAllByUser() {
 		long id = getCurrentUser().getId();
@@ -80,13 +73,15 @@ public class SupportChatsService {
 	}
 
 	@Transactional
-	public void create() {
+	public DataDTO<Long> create(String message) {
 		User user = getCurrentUser();
 		List<SupportChat.Status> statuses = List.of(SupportChat.Status.WAIT, SupportChat.Status.IN_PROCESSING);
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
 		});
-		chatsRepository.save(new SupportChat(user.getId(), SupportChat.Status.WAIT));
+		SupportChat chat = chatsRepository.save(new SupportChat(user.getId(), SupportChat.Status.WAIT));
+		sendTextMessage(message, chat.getId());
+		return new DataDTO<>(chat.getId());
 	}
 
 	@Transactional
@@ -133,34 +128,13 @@ public class SupportChatsService {
 		return new DataDTO<>(message.getId());
 	}
 
-	@Transactional
-	public DataDTO<Long> sendImage(long id, MultipartFile image) {
-		String fileName = UUID.randomUUID() + ".jpg";
-		SupportChatMessage message = saveMessage(id, fileName, ContentType.VIDEO);
-		try {
-			filesService.saveImage(image, fileName, accessKey);
-			sendMessageOnTopic(message);
-			return new DataDTO<>(message.getId());
-		}
-		catch (Exception e) {
-			messagesRepository.delete(message);
-			throw e;
-		}
-	}
-
-	@Transactional
-	public DataDTO<Long> sendVideo(long id, MultipartFile video) {
-		String fileName = UUID.randomUUID() + ".mp4";
-		SupportChatMessage message = saveMessage(id, fileName, ContentType.VIDEO);
-		try {
-			filesService.saveVideo(video, fileName, accessKey);
-			sendMessageOnTopic(message);
-			return new DataDTO<>(message.getId());
-		}
-		catch (Exception e) {
-			messagesRepository.delete(message);
-			throw e;
-		}
+	public DataDTO<Long> sendFile(long chatId, MultipartFile file, ContentType contentType) {
+		String fileName = MessagesService.getFileName(contentType);
+		SupportChatMessage message = saveMessage(chatId, fileName, contentType);
+		DataDTO<Long> result = messagesService.saveFile(file, message, contentType,
+				() -> messagesRepository.delete(message));
+		sendMessageOnTopic(message);
+		return result;
 	}
 
 	public ResponseEntity<?> getFile(long id, ContentType contentType) {
@@ -171,9 +145,8 @@ public class SupportChatsService {
 
 	private SupportChatMessage saveMessage(long id, String text, ContentType contentType) {
 		SupportChat chat = getById(id);
-		switch (chat.getStatus()) {
-			case WAIT -> throw new ChatException("Chat in wait status");
-			case CLOSED -> throw new ChatException("Chat is closed");
+		if (chat.getStatus() == SupportChat.Status.CLOSED) {
+			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
 		return messagesRepository.save(SupportChatMessage.builder()
@@ -205,11 +178,12 @@ public class SupportChatsService {
 		checkAccess(chat);
 		List<String> files = messagesRepository
 			.findAllByChatAndContentTypeIn(chat, List.of(ContentType.IMAGE, ContentType.VIDEO)).stream()
-			.map(SupportChatMessage::getText)
-			.toList();
+				.map(SupportChatMessage::getText)
+				.toList();
 		kafkaTemplate.send("deleted_chat", files);
 		chatsRepository.deleteById(chat.getId());
-		messagingTemplate.convertAndSend("/topic/support/" + chat.getId(), Map.of("deleted_chat", chat.getId()));
+		messagingTemplate.convertAndSend("/topic/support/" + chat.getId(),
+				Map.of("deleted_chat", chat.getId()));
 	}
 
 	private void sendUpdatedStatusMessage(long chatId, SupportChat.Status status) {
@@ -232,7 +206,7 @@ public class SupportChatsService {
 
 	private void checkAccess(SupportChat chat) {
 		User user = getCurrentUser();
-		if (chat.getUserId() != user.getId() && !chat.getAdminId().equals(user.getId())) {
+		if (chat.getUserId() != user.getId() && (chat.getAdminId() == null || !chat.getAdminId().equals(user.getId()))) {
 			throw new ChatException("You are not in this chat");
 		}
 	}
