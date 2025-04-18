@@ -3,7 +3,6 @@ package danix.app.chats_service.services;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
-import danix.app.chats_service.feign.FilesService;
 import danix.app.chats_service.feign.UsersService;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.Chat;
@@ -15,7 +14,6 @@ import danix.app.chats_service.security.User;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
 
@@ -40,8 +37,6 @@ public class ChatsService {
 
 	private final MessagesRepository messagesRepository;
 
-	private final FilesService filesService;
-
 	private final UsersService usersService;
 
 	private final SimpMessagingTemplate messagingTemplate;
@@ -51,9 +46,6 @@ public class ChatsService {
 	private final MessagesService messagesService;
 
 	private final MessageMapper messageMapper;
-
-	@Value("${access_key}")
-	private String accessKey;
 
 	public List<ResponseChatDTO> getUserChats() {
 		User currentUser = getCurrentUser();
@@ -72,53 +64,35 @@ public class ChatsService {
 	}
 
 	@Transactional
-	public void create(long userId, String token) {
+	public DataDTO<Long> create(long userId, String token) {
 		User currentUser = getCurrentUser();
 		if (isBlocked(userId, token)) {
 			throw new ChatException("User has blocked you");
 		}
-		chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresentOrElse(chat -> {
+		chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresent(chat -> {
 			throw new ChatException("Chat already exists");
-		}, () -> {
-			Chat chat = chatsRepository.save(new Chat(currentUser.getId(), userId));
-			messagingTemplate.convertAndSend("/topic/user/" + userId + "/main",
-					Map.of("created_chat", chat.getId()));
 		});
+		Chat chat = chatsRepository.save(new Chat(currentUser.getId(), userId));
+		messagingTemplate.convertAndSend("/topic/user/" + userId + "/main",
+				Map.of("created_chat", chat.getId()));
+		return new DataDTO<>(chat.getId());
 	}
 
 	@Transactional
 	public DataDTO<Long> sendTextMessage(long chatId, String text, String token) {
-		return new DataDTO<>(saveMessage(chatId, text, ContentType.TEXT, token).getId());
+		ChatMessage message = saveMessage(chatId, text, ContentType.TEXT, token);
+		sendMessageOnTopic(message);
+		return new DataDTO<>(message.getId());
 	}
 
 	@Transactional
-	public DataDTO<Long> sendImage(long chatId, MultipartFile image, String token) {
-		String fileName = UUID.randomUUID() + ".jpg";
-		ChatMessage message = saveMessage(chatId, fileName, ContentType.IMAGE, token);
-		try {
-			filesService.saveImage(image, fileName, accessKey);
-			sendMessageOnTopic(message);
-			return new DataDTO<>(message.getId());
-		}
-		catch (Exception e) {
-			messagesRepository.delete(message);
-			throw e;
-		}
-	}
-
-	@Transactional
-	public DataDTO<Long> sendVideo(long chatId, MultipartFile video, String token) {
-		String fileName = UUID.randomUUID() + ".mp4";
-		ChatMessage message = saveMessage(chatId, fileName, ContentType.VIDEO, token);
-		try {
-			filesService.saveVideo(video, fileName, accessKey);
-			sendMessageOnTopic(message);
-			return new DataDTO<>(message.getId());
-		}
-		catch (Exception e) {
-			messagesRepository.delete(message);
-			throw e;
-		}
+	public DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType) {
+		String fileName = MessagesService.getFileName(contentType);
+		ChatMessage message = saveMessage(chatId, fileName, contentType, token);
+		DataDTO<Long> result = messagesService.saveFile(file, message, contentType,
+				() -> messagesRepository.delete(message));
+		sendMessageOnTopic(message);
+		return result;
 	}
 
 	public ResponseEntity<?> getFile(long id, ContentType contentType) {
@@ -161,10 +135,9 @@ public class ChatsService {
 		Chat chat = chatsRepository.findById(id).orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
 		List<String> files = messagesRepository
-			.findAllByChatAndContentTypeIn(chat, List.of(ContentType.IMAGE, ContentType.VIDEO))
-			.stream()
-			.map(ChatMessage::getText)
-			.toList();
+			.findAllByChatAndContentTypeIn(chat, List.of(ContentType.IMAGE, ContentType.VIDEO)).stream()
+				.map(ChatMessage::getText)
+				.toList();
 		kafkaTemplate.send("deleted_chat", files);
 		chatsRepository.deleteById(chat.getId());
 		User currentUser = getCurrentUser();

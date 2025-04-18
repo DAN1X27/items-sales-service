@@ -11,7 +11,6 @@ import danix.app.chats_service.util.ErrorResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
@@ -48,9 +47,10 @@ public class SupportChatsController {
 	}
 
 	@PostMapping
-	public ResponseEntity<HttpStatus> create() {
-		chatService.create();
-		return new ResponseEntity<>(HttpStatus.CREATED);
+	public ResponseEntity<DataDTO<Long>> create(@RequestBody @Valid MessageDTO messageDTO,
+				BindingResult bindingResult) {
+		handleRequestErrors(bindingResult);
+		return new ResponseEntity<>(chatService.create(messageDTO.getMessage()), HttpStatus.CREATED);
 	}
 
 	@PatchMapping("/{id}/close")
@@ -95,12 +95,12 @@ public class SupportChatsController {
 
 	@PostMapping("/{id}/image")
 	public ResponseEntity<DataDTO<Long>> sendImage(@PathVariable long id, @RequestParam MultipartFile image) {
-		return new ResponseEntity<>(chatService.sendImage(id, image), HttpStatus.CREATED);
+		return new ResponseEntity<>(chatService.sendFile(id, image, ContentType.IMAGE), HttpStatus.CREATED);
 	}
 
 	@PostMapping("/{id}/video")
 	public ResponseEntity<DataDTO<Long>> sendVideo(@PathVariable long id, @RequestParam MultipartFile video) {
-		return new ResponseEntity<>(chatService.sendVideo(id, video), HttpStatus.OK);
+		return new ResponseEntity<>(chatService.sendFile(id, video, ContentType.VIDEO), HttpStatus.OK);
 	}
 
 	@GetMapping("/message/{id}/image")

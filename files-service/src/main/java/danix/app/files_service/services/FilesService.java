@@ -41,17 +41,16 @@ public class FilesService {
 	}
 
 	public void upload(FileType type, MultipartFile file, String fileName) {
-		assert file.getOriginalFilename() != null;
+		String name = file.getOriginalFilename();
+		assert name != null;
 		switch (type) {
 			case ANNOUNCEMENT_IMAGE, CHAT_IMAGE, USER_AVATAR -> {
-				if (file.getOriginalFilename().endsWith(".jpg")
-					&& !file.getOriginalFilename().endsWith(".png")
-					&& !file.getOriginalFilename().endsWith(".webp")) {
+				if (!name.endsWith(".jpg") && !name.endsWith(".png") && !name.endsWith(".webp")) {
 					throw new FileException("Invalid file type");
 				}
 			}
 			case CHAT_VIDEO -> {
-				if (file.getOriginalFilename().endsWith(".mp4")) {
+				if (!name.endsWith(".mp4")) {
 					throw new FileException("Invalid file type");
 				}
 			}

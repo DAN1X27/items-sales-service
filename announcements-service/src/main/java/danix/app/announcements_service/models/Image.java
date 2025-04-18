@@ -10,6 +10,11 @@ import lombok.*;
 @Setter
 public class Image {
 
+	public Image(String fileName, Announcement announcement) {
+		this.fileName = fileName;
+		this.announcement = announcement;
+	}
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -20,10 +25,5 @@ public class Image {
 	@ManyToOne
 	@JoinColumn(name = "announcement_id", referencedColumnName = "id")
 	private Announcement announcement;
-
-	public Image(String fileName, Announcement announcement) {
-		this.fileName = fileName;
-		this.announcement = announcement;
-	}
 
 }
