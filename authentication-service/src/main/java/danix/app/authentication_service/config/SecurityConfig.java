@@ -28,7 +28,8 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http.csrf(AbstractHttpConfigurer::disable)
 			.authorizeHttpRequests(requests -> requests
-				.requestMatchers("/auth/email/update/key", "/auth/email/update", "/auth/logout")
+				.requestMatchers("/auth/email/update/key", "/auth/email/update", "/auth/logout",
+						"/auth/authorize")
 				.hasAnyRole("USER", "ADMIN")
 				.anyRequest()
 				.permitAll())

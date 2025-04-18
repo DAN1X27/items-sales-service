@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class UpdateEmailDTO {
 
-	@NotBlank(message = "Email must not be empty")
+	@NotBlank(message = "New email must not be empty")
 	@Email(message = "New email must be correct")
 	private String email;
 

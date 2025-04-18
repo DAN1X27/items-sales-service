@@ -56,14 +56,14 @@ public class MessagesService {
 	}
 
 	DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable deleteFunc) {
-		hashCode();
 		try {
 			switch (contentType) {
 				case IMAGE -> filesService.saveImage(file, message.getText(), accessKey);
 				case VIDEO -> filesService.saveVideo(file, message.getText(), accessKey);
 				default -> throw new IllegalArgumentException("Invalid content type");
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			deleteFunc.run();
 			throw e;
 		}

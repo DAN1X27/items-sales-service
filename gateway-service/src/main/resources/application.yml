@@ -18,6 +18,7 @@ spring:
               - POST
               - DELETE
               - PUT
+              - PATCH
               - OPTIONS
     config:
       uri: ${config_uri}

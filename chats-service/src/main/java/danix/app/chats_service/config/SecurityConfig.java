@@ -27,7 +27,8 @@ public class SecurityConfig {
 				    .permitAll()
 				    .anyRequest()
 				    .hasAnyRole("USER", "ADMIN"))
-			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.sessionManagement(session ->
+					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 			.build();
 	}

@@ -10,9 +10,9 @@ public interface FilesService {
 
 	String PATH = "/user/avatar";
 
-	@PutMapping(value = PATH, consumes = "multipart/form-data")
-	void updateAvatar(@RequestPart("image") MultipartFile image, @RequestParam String fileName,
-			@RequestParam("access_key") String accessKey);
+	@PostMapping(value = PATH, consumes = "multipart/form-data")
+	void uploadAvatar(@RequestPart("image") MultipartFile image, @RequestParam String fileName,
+					  @RequestParam("access_key") String accessKey);
 
 	@GetMapping(value = PATH, produces = "image/jpeg")
 	byte[] downloadAvatar(@RequestParam String fileName, @RequestParam("access_key") String accessKey);

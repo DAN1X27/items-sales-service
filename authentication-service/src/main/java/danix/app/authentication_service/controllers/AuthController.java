@@ -138,7 +138,7 @@ public class AuthController {
 		if (!passwordEncoder.matches(updateEmailDTO.getPassword(), user.getPassword())) {
 			throw new AuthenticationException("Incorrect password");
 		}
-		emailKeysService.sendKey(updateEmailDTO.getEmail(), "You key for update email: ");
+		emailKeysService.sendKey(updateEmailDTO.getEmail(), "Your key for update email: ");
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
@@ -159,13 +159,7 @@ public class AuthController {
 
 	@PostMapping("/logout")
 	public ResponseEntity<HttpStatus> logout() {
-		try {
-			User user = getCurrentUser();
-			tokensService.deleteUserTokens(user.getId());
-		}
-		catch (Exception e) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
+		tokensService.deleteUserTokens(getCurrentUser().getId());
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 

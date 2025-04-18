@@ -55,7 +55,7 @@ public class FilesService {
 				}
 			}
 		}
-		String path = getFilePath(type);
+		String path = getDirPath(type);
 		File newFile = new File(path, fileName);
 		if (!newFile.getParentFile().exists()) {
 			newFile.getParentFile().mkdirs();
@@ -70,7 +70,7 @@ public class FilesService {
 	}
 
 	public ResponseEntity<?> download(FileType type, String fileName) {
-		Path path = Path.of(getFilePath(type), fileName);
+		Path path = Path.of(getDirPath(type), fileName);
 		if (!Files.exists(path)) {
 			throw new FileException("File not found");
 		}
@@ -89,7 +89,7 @@ public class FilesService {
 	}
 
 	public void delete(FileType type, String fileName) {
-		Path path = Path.of(getFilePath(type), fileName);
+		Path path = Path.of(getDirPath(type), fileName);
 		try {
 			Files.deleteIfExists(path);
 		}
@@ -99,7 +99,7 @@ public class FilesService {
 		}
 	}
 
-	private String getFilePath(FileType type) {
+	private String getDirPath(FileType type) {
 		return switch (type) {
 			case USER_AVATAR -> USERS_AVATARS_PATH;
 			case CHAT_IMAGE -> CHATS_IMAGES_PATH;
@@ -109,15 +109,15 @@ public class FilesService {
 	}
 
 	@KafkaListener(topics = "deleted_chat", containerFactory = "listFactory")
-	public void deleteChatImages(List<String> files) {
-		files.forEach(file -> {
+	public void deleteChatFiles(List<String> files) {
+		for (String file : files) {
 			if (file.endsWith(".jpg")) {
 				delete(FileType.CHAT_IMAGE, file);
 			}
 			else if (file.endsWith(".mp4")) {
 				delete(FileType.CHAT_VIDEO, file);
 			}
-		});
+		}
 	}
 
 	@KafkaListener(topics = "deleted_announcements_images", containerFactory = "listFactory")
