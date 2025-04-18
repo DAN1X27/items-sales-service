@@ -174,7 +174,7 @@ public class UsersService {
 		String oldAvatar = user.getAvatar();
 		String fileName = UUID.randomUUID() + ".jpg";
 		user.setAvatar(fileName);
-		filesService.updateAvatar(image, fileName, accessKey);
+		filesService.uploadAvatar(image, fileName, accessKey);
 		if (!oldAvatar.equals(defaultAvatar)) {
 			filesService.deleteAvatar(oldAvatar, accessKey);
 		}

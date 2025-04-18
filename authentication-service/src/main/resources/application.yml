@@ -21,6 +21,9 @@ spring:
       uri: ${config-uri}
       username: ${config-username}
       password: ${config-password}
+    openfeign:
+      okhttp:
+        enabled: true
 server:
   port: 6060
 redis:

@@ -33,14 +33,15 @@ public class SecurityConfig {
 				.requestMatchers("/error")
 				.permitAll()
 				.requestMatchers("/users/registration", "/users/registration/confirm", "/users/authentication",
-						"/users/password", "/users/{id}/email")
+						"/users/password/reset", "/users/{id}/email", "/users/email")
 				.access(accessKeyAuthManager())
 				.requestMatchers("/users/reports", "/users/report/", "/users/{id}/ban", "/users/{id}/unban",
 						"/users/banned")
 				.hasRole("ADMIN")
 				.anyRequest()
 				.hasAnyRole("USER", "ADMIN"))
-			.sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.sessionManagement((session) ->
+					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 			.build();
 	}

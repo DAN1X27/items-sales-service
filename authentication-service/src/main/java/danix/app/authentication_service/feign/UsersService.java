@@ -17,17 +17,14 @@ public interface UsersService {
 	@PostMapping("/users/registration")
 	void tempRegistration(@RequestBody RegistrationDTO registrationDTO, @RequestParam("access_key") String key);
 
-	@PostMapping("/users/registration/confirm")
+	@PatchMapping("/users/registration/confirm")
 	Map<String, Object> registrationConfirm(@RequestParam String email, @RequestParam("access_key") String key);
 
-	@GetMapping("/users/info")
-	Map<String, Object> getUserInfo(@RequestHeader("Authorization") String token);
-
-	@PutMapping("/users/password")
+	@PatchMapping("/users/password/reset")
 	void resetPassword(@RequestParam String email, @RequestParam String password,
 			@RequestParam("access_key") String accessKey);
 
-	@PutMapping("/users/email")
+	@PatchMapping("/users/email")
 	void updateEmail(@RequestParam String email, @RequestParam("access_key") String accessKey,
 			@RequestHeader("Authorization") String token);
 

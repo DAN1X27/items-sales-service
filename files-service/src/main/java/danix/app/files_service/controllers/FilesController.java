@@ -18,8 +18,8 @@ public class FilesController {
 
 	private final FilesService filesService;
 
-	@PutMapping("/user/avatar")
-	public ResponseEntity<HttpStatus> updateUserAvatar(@RequestParam MultipartFile image, @RequestParam String fileName) {
+	@PostMapping("/user/avatar")
+	public ResponseEntity<HttpStatus> addUserAvatar(@RequestParam MultipartFile image, @RequestParam String fileName) {
 		filesService.upload(FileType.USER_AVATAR, image, fileName);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

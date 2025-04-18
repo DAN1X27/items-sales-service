@@ -62,7 +62,7 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
-	@PostMapping("/registration/confirm")
+	@PatchMapping("/registration/confirm")
 	public ResponseEntity<DataDTO<Long>> registrationConfirm(@RequestParam String email) {
 		return new ResponseEntity<>(usersService.registrationConfirm(email), HttpStatus.OK);
 	}
@@ -84,7 +84,7 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@PutMapping("/password/reset")
+	@PatchMapping("/password/reset")
 	public ResponseEntity<HttpStatus> resetPassword(@RequestParam String email, @RequestParam String password) {
 		User user = usersService.getByEmail(email);
 		usersService.updatePassword(user, password);
@@ -106,7 +106,7 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@PutMapping("/email")
+	@PatchMapping("/email")
 	public ResponseEntity<HttpStatus> updateEmail(@RequestParam String email) {
 		usersService.updateEmail(email);
 		return new ResponseEntity<>(HttpStatus.OK);
