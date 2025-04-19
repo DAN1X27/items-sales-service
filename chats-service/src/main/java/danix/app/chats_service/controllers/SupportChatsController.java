@@ -103,12 +103,12 @@ public class SupportChatsController {
 		return new ResponseEntity<>(chatService.sendFile(id, video, ContentType.VIDEO), HttpStatus.OK);
 	}
 
-	@GetMapping("/message/{id}/image")
+	@GetMapping("/image/{id}")
 	public ResponseEntity<?> downloadImage(@PathVariable long id) {
 		return chatService.getFile(id, ContentType.IMAGE);
 	}
 
-	@GetMapping("/message/{id}/video")
+	@GetMapping("/video/{id}")
 	public ResponseEntity<?> downloadVideo(@PathVariable long id) {
 		return chatService.getFile(id, ContentType.VIDEO);
 	}

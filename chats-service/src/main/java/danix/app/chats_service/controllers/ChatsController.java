@@ -79,12 +79,12 @@ public class ChatsController {
 		return new ResponseEntity<>(chatsService.sendFile(id, video, token, ContentType.VIDEO), HttpStatus.OK);
 	}
 
-	@GetMapping("/message/{id}/video")
+	@GetMapping("/video/{id}")
 	public ResponseEntity<?> downloadVideo(@PathVariable long id) {
 		return chatsService.getFile(id, ContentType.VIDEO);
 	}
 
-	@GetMapping("/message/{id}/image")
+	@GetMapping("/image/{id}")
 	public ResponseEntity<?> downloadImage(@PathVariable long id) {
 		return chatsService.getFile(id, ContentType.IMAGE);
 	}

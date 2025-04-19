@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SupportChat {
+public class SupportChat implements Chat {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
