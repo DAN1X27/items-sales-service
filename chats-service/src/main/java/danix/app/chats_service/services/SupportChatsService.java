@@ -5,9 +5,7 @@ import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.dto.ResponseSupportChatDTO;
 import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
-import danix.app.chats_service.models.Message;
-import danix.app.chats_service.models.SupportChat;
-import danix.app.chats_service.models.SupportChatMessage;
+import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
 import danix.app.chats_service.security.User;
@@ -23,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
@@ -45,6 +42,8 @@ public class SupportChatsService {
 	private final MessageMapper messageMapper;
 
 	private final ChatMapper chatMapper;
+
+	private static final ChatFactory factory = ChatFactory.getFactory(FactoryType.SUPPORT_CHAT_FACTORY);
 
 	public List<ResponseSupportChatDTO> findAllByUser() {
 		long id = getCurrentUser().getId();
@@ -79,7 +78,7 @@ public class SupportChatsService {
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
 		});
-		SupportChat chat = chatsRepository.save(new SupportChat(user.getId(), SupportChat.Status.WAIT));
+		SupportChat chat = chatsRepository.save((SupportChat) factory.createChat(user.getId(), null));
 		sendTextMessage(message, chat.getId());
 		return new DataDTO<>(chat.getId());
 	}
@@ -149,13 +148,7 @@ public class SupportChatsService {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
-		return messagesRepository.save(SupportChatMessage.builder()
-			.text(text)
-			.contentType(contentType)
-			.chat(chat)
-			.senderId(getCurrentUser().getId())
-			.sentTime(LocalDateTime.now())
-			.build());
+		return messagesRepository.save((SupportChatMessage) factory.createMessage(text, chat, contentType));
 	}
 
 	@Transactional
@@ -187,7 +180,10 @@ public class SupportChatsService {
 	}
 
 	private void sendUpdatedStatusMessage(long chatId, SupportChat.Status status) {
-		Map<String, Object> message = Map.of("updated_status", status, "updater_id", getCurrentUser().getId());
+		Map<String, Object> message = Map.of(
+				"updated_status", status,
+				"updater_id", getCurrentUser().getId()
+		);
 		messagingTemplate.convertAndSend("/topic/support/" + chatId, message);
 	}
 

@@ -31,7 +31,7 @@ public class MessagesService {
 	@Value("${access_key}")
 	private String accessKey;
 
-	ResponseEntity<?> getFile(Message message, ContentType contentType) {
+	public ResponseEntity<?> getFile(Message message, ContentType contentType) {
 		MediaType mediaType;
 		byte[] data = switch (contentType) {
 			case IMAGE -> {
@@ -48,14 +48,14 @@ public class MessagesService {
 				mediaType = MediaType.parseMediaType("video/mp4");
 				yield filesService.downloadVideo(message.getText(), accessKey);
 			}
-			default -> throw new ChatException("Invalid content type");
+			default -> throw new IllegalArgumentException("Invalid content type");
 		};
 		return ResponseEntity.status(HttpStatus.OK)
 				.contentType(mediaType)
 				.body(data);
 	}
 
-	DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable deleteFunc) {
+	public DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable deleteFunc) {
 		try {
 			switch (contentType) {
 				case IMAGE -> filesService.saveImage(file, message.getText(), accessKey);
@@ -70,7 +70,7 @@ public class MessagesService {
 		return new DataDTO<>(message.getId());
 	}
 
-	void updateMessage(Message message, String text, String topic) {
+	public void updateMessage(Message message, String text, String topic) {
 		User user = getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");
@@ -84,7 +84,7 @@ public class MessagesService {
 		messagingTemplate.convertAndSend(topic, response);
 	}
 
-	void deleteMessage(Message message, String topic, Runnable deleteFunction) {
+	public void deleteMessage(Message message, String topic, Runnable deleteFunction) {
 		User user = getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");
@@ -97,7 +97,7 @@ public class MessagesService {
 		messagingTemplate.convertAndSend(topic, Map.of("deleted_message", message.getId()));
 	}
 
-	static String getFileName(ContentType contentType) {
+	public static String getFileName(ContentType contentType) {
 		return switch (contentType) {
 			case IMAGE -> UUID.randomUUID() + ".jpg";
 			case VIDEO -> UUID.randomUUID() + ".mp4";

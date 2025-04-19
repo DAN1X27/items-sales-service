@@ -26,7 +26,7 @@ public class ChatMessage implements Message {
 
 	@ManyToOne
 	@JoinColumn(name = "chat_id", referencedColumnName = "id")
-	private Chat chat;
+	private UsersChat chat;
 
 	@Column(name = "sent_time")
 	private LocalDateTime sentTime;

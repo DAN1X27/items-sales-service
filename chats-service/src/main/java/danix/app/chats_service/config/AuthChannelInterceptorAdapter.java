@@ -33,16 +33,20 @@ public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
 			case CONNECT -> {
 				String header = accessor.getFirstNativeHeader("Authorization");
 				UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(header);
-				UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userDetails, null,
-						userDetails.getAuthorities());
+				UsernamePasswordAuthenticationToken token =
+						new UsernamePasswordAuthenticationToken(
+								userDetails,
+								null,
+								userDetails.getAuthorities()
+						);
 				accessor.setUser(token);
 			}
 			case SUBSCRIBE -> {
-				String dest = accessor.getDestination();
 				Authentication authentication = (Authentication) accessor.getUser();
 				assert authentication != null;
 				UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 				User user = userDetails.authentication();
+				String dest = accessor.getDestination();
 				assert dest != null;
 				if (dest.startsWith("/topic/chat/")) {
 					long id = Long.parseLong(dest.substring(12));

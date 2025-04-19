@@ -1,6 +1,6 @@
 package danix.app.chats_service.repositories;
 
-import danix.app.chats_service.models.Chat;
+import danix.app.chats_service.models.UsersChat;
 import danix.app.chats_service.models.ChatMessage;
 import danix.app.chats_service.models.Message;
 import danix.app.chats_service.util.ContentType;
@@ -13,8 +13,8 @@ import java.util.List;
 @Repository
 public interface MessagesRepository extends JpaRepository<ChatMessage, Long> {
 
-	List<ChatMessage> findAllByChatAndContentTypeIn(Chat chat, List<ContentType> contentType);
+	List<ChatMessage> findAllByChatAndContentTypeIn(UsersChat chat, List<ContentType> contentType);
 
-	List<Message> findAllByChat(Chat chat, Pageable pageable);
+	List<Message> findAllByChat(UsersChat chat, Pageable pageable);
 
 }
