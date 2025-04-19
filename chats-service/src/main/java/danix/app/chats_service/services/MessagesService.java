@@ -31,7 +31,7 @@ public class MessagesService {
 	@Value("${access_key}")
 	private String accessKey;
 
-	public ResponseEntity<?> getFile(Message message, ContentType contentType) {
+	ResponseEntity<?> getFile(Message message, ContentType contentType) {
 		MediaType mediaType;
 		byte[] data = switch (contentType) {
 			case IMAGE -> {
@@ -70,7 +70,22 @@ public class MessagesService {
 		return new DataDTO<>(message.getId());
 	}
 
-	public void updateMessage(Message message, String text, String topic) {
+	DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable deleteFunc) {
+		try {
+			switch (contentType) {
+				case IMAGE -> filesService.saveImage(file, message.getText(), accessKey);
+				case VIDEO -> filesService.saveVideo(file, message.getText(), accessKey);
+				default -> throw new IllegalArgumentException("Invalid content type");
+			}
+		}
+		catch (Exception e) {
+			deleteFunc.run();
+			throw e;
+		}
+		return new DataDTO<>(message.getId());
+	}
+
+	void updateMessage(Message message, String text, String topic) {
 		User user = getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");
@@ -84,7 +99,7 @@ public class MessagesService {
 		messagingTemplate.convertAndSend(topic, response);
 	}
 
-	public void deleteMessage(Message message, String topic, Runnable deleteFunction) {
+	void deleteMessage(Message message, String topic, Runnable deleteFunction) {
 		User user = getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");

@@ -45,7 +45,7 @@ public class ChatsService {
 	private final MessageMapper messageMapper;
 
 	private static final ChatFactory factory = ChatFactory.getFactory(FactoryType.USERS_CHAT_FACTORY);
-
+  
 	public List<ResponseChatDTO> getUserChats() {
 		User currentUser = getCurrentUser();
 		return chatsRepository.findAllByUser1IdOrUser2Id(currentUser.getId(), currentUser.getId()).stream()
