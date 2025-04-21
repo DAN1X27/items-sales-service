@@ -1,0 +1,1 @@
+CREATE DATABASE announcements_service_db;

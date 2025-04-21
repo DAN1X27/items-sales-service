@@ -1,0 +1,1 @@
+CREATE DATABASE users_service_db;
