@@ -4,8 +4,8 @@ spring:
   application:
     name: 'email-sender-service'
   mail:
-    host: smtp.gmail.com
-    port: 587
+    host: ${mail.host}
+    port: ${mail.port}
     properties:
       mail:
         smtp:

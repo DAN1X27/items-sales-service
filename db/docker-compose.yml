@@ -5,7 +5,6 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=users_service_db
     volumes:
       - ./users-service/db_data:/var/lib/postgresql/data
       - ./users-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -19,7 +18,6 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=authentication_service_db
     volumes:
       - ./authentication-service/db_data:/var/lib/postgresql/data
       - ./authentication-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -33,7 +31,6 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=announcements_service_db
     volumes:
       - ./announcements-service/db_data:/var/lib/postgresql/data
       - ./announcements-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -47,7 +44,6 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=chats_service_db
     volumes:
       - ./chats-service/db_data:/var/lib/postgresql/data
       - ./chats-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
