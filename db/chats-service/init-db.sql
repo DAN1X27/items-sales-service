@@ -1,0 +1,1 @@
+CREATE DATABASE chats_service_db;

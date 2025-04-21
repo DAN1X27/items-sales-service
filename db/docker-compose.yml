@@ -1,0 +1,59 @@
+services:
+  users-service_db:
+    image: 'postgres:17-alpine'
+    container_name: users-service-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=users_service_db
+    volumes:
+      - ./users-service/db_data:/var/lib/postgresql/data
+      - ./users-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+
+  authentication-service_db:
+    image: 'postgres:17-alpine'
+    container_name: authentication-service-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=authentication_service_db
+    volumes:
+      - ./authentication-service/db_data:/var/lib/postgresql/data
+      - ./authentication-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5434:5432"
+    restart: unless-stopped
+
+  announcements-service_db:
+    image: 'postgres:17-alpine'
+    container_name: announcements-service-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=announcements_service_db
+    volumes:
+      - ./announcements-service/db_data:/var/lib/postgresql/data
+      - ./announcements-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5435:5432"
+    restart: unless-stopped
+
+  chats-service_db:
+    image: 'postgres:17-alpine'
+    container_name: chats-service-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=chats_service_db
+    volumes:
+      - ./chats-service/db_data:/var/lib/postgresql/data
+      - ./chats-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5436:5432"
+    restart: unless-stopped
+
+volumes:
+  db_data:
