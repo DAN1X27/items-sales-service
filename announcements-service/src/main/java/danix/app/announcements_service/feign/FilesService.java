@@ -14,7 +14,7 @@ public interface FilesService {
 	void saveImage(@RequestPart("image") MultipartFile image, @RequestParam String fileName,
 				   @RequestParam("access_key") String accessKey);
 
-	@GetMapping(value = PATH, produces = "image/jpeg")
+	@GetMapping(value = PATH)
 	byte[] downloadImage(@RequestParam String fileName, @RequestParam("access_key") String accessKey);
 
 	@DeleteMapping(PATH)

@@ -14,7 +14,7 @@ public interface FilesService {
 	void uploadAvatar(@RequestPart("image") MultipartFile image, @RequestParam String fileName,
 					  @RequestParam("access_key") String accessKey);
 
-	@GetMapping(value = PATH, produces = "image/jpeg")
+	@GetMapping(value = PATH)
 	byte[] downloadAvatar(@RequestParam String fileName, @RequestParam("access_key") String accessKey);
 
 	@DeleteMapping(PATH)

@@ -19,7 +19,7 @@ spring:
 server:
   port: 8084
 paths:
-  users-avatars: "D:/Java Projects/items-sales-service/files-service/files/users_avatars"
+  users_avatars: "D:/Java Projects/items-sales-service/files-service/files/users_avatars"
   chats_images: "D:/Java Projects/items-sales-service/files-service/files/chats_images"
   chats_videos: "D:/Java Projects/items-sales-service/files-service/files/chats_videos"
   announcements_images: "D:/Java Projects/items-sales-service/files-service/files/announcements_images"

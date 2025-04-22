@@ -30,7 +30,7 @@ public class FilesService {
 
 	private final String ANNOUNCEMENTS_IMAGES_PATH;
 
-	public FilesService(@Value("${paths.users-avatars}") String usersAvatarsPath,
+	public FilesService(@Value("${paths.users_avatars}") String usersAvatarsPath,
                         @Value("${paths.chats_images}") String chatsImagesPath,
                         @Value("${paths.chats_videos}") String chatsVideosPath,
                         @Value("${paths.announcements_images}") String announcementsImagesPath) {

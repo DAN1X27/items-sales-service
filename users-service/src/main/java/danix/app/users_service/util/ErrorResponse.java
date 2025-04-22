@@ -1,21 +1,14 @@
 package danix.app.users_service.util;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
 public class ErrorResponse {
 
-	private String message;
+	private final String message;
 
-	private LocalDateTime timestamp;
-
-	public ErrorResponse(String message, LocalDateTime timestamp) {
-		this.message = message;
-		this.timestamp = timestamp;
-	}
+	private final LocalDateTime timestamp;
 
 }

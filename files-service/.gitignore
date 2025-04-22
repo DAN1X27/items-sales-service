@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+/files/announcements_images
+/files/chats_images
+/files/chats_videos
