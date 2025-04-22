@@ -1,0 +1,16 @@
+services:
+  users-service:
+    build:
+      context: .
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+      - SPRING_CLOUD_CONFIG_USERNAME=username
+      - SPRING_CLOUD_CONFIG_PASSWORD=password
+    ports:
+      - "9090:9090"
+    networks:
+      - items-sales-service-net
+networks:
+  items-sales-service-net:
+    external: true
+    name: items-sales-service-net

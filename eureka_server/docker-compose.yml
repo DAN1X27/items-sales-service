@@ -1,0 +1,12 @@
+services:
+  eureka-server:
+    build:
+      context: .
+    ports:
+      - "8761:8761"
+    networks:
+      - items-sales-service-net
+networks:
+  items-sales-service-net:
+    external: true
+    name: items-sales-service-net

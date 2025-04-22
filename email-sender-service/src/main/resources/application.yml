@@ -25,16 +25,6 @@ spring:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
       group-id: ${kafka.group_id}
-eureka:
-  instance:
-    instanceId: ${spring.application.name}
-    hostname: ${eureka.client.hostname}
-    preferIpAddress: false
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: ${eureka.server.url}
 management:
   endpoints:
     web:

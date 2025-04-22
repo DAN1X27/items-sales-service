@@ -6,6 +6,9 @@ spring:
     username: ${db.username}
     password: ${db.password}
     url: ${db.url}
+  flyway:
+    locations: classpath:db_migration
+    baseline-on-migrate: true
   servlet:
     multipart:
       max-file-size: ${max-file-size}

@@ -10,6 +10,8 @@ services:
       - ./users-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "5433:5432"
+    networks:
+      - items-sales-service-net
     restart: unless-stopped
 
   authentication-service_db:
@@ -23,6 +25,8 @@ services:
       - ./authentication-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "5434:5432"
+    networks:
+      - items-sales-service-net
     restart: unless-stopped
 
   announcements-service_db:
@@ -36,6 +40,8 @@ services:
       - ./announcements-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "5435:5432"
+    networks:
+      - items-sales-service-net
     restart: unless-stopped
 
   chats-service_db:
@@ -49,7 +55,19 @@ services:
       - ./chats-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "5436:5432"
+    networks:
+      - items-sales-service-net
     restart: unless-stopped
-
+  redis-db:
+    image: 'redis:latest'
+    container_name: "redis-db"
+    ports:
+      - "6379:6379"
+    networks:
+      - items-sales-service-net
+networks:
+  items-sales-service-net:
+    external: true
+    name: items-sales-service-net
 volumes:
   db_data:

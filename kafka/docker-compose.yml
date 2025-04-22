@@ -1,21 +1,47 @@
 services:
-  zookeeper:
-    image: wurstmeister/zookeeper:latest
+  kafkahq:
+    image: tchiotludo/kafkahq
+    environment:
+      KAFKAHQ_CONFIGURATION: |
+        kafkahq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
     ports:
-      - "2181:2181"
+      - "8088:8080"
+    networks:
+      - items-sales-service-net
+    depends_on:
+      - kafka
 
   kafka:
-    image: wurstmeister/kafka:latest
-    ports:
-      - "9092:9092"
-    expose:
-      - "9093"
     environment:
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_CREATE_TOPICS: "my-topic:1:1"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
+    image: confluentinc/cp-kafka:latest
+    networks:
+      - items-sales-service-net
+    ports:
+      - 9093:9093
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    restart: always
+
+  zookeeper:
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+    image: confluentinc/cp-zookeeper:latest
+    networks:
+      - items-sales-service-net
+    ports:
+     - 32181:32181
+networks:
+  items-sales-service-net:
+    external: true
+    name: items-sales-service-net
