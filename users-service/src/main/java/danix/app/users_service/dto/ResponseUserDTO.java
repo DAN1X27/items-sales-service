@@ -14,6 +14,9 @@ public class ResponseUserDTO {
 
 	private Double grade;
 
+	@JsonProperty("grades_count")
+	private Integer gradesCount;
+
 	private String country;
 
 	private String city;

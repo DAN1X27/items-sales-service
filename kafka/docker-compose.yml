@@ -30,7 +30,7 @@ services:
       - 9092:9092
     depends_on:
       - zookeeper
-    restart: always
+    restart: unless-stopped
 
   zookeeper:
     environment:

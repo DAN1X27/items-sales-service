@@ -112,7 +112,7 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@PatchMapping("/avatar")
+	@PostMapping("/avatar")
 	public ResponseEntity<HttpStatus> updateAvatar(@RequestParam MultipartFile image) {
 		usersService.updateAvatar(image);
 		return new ResponseEntity<>(HttpStatus.OK);

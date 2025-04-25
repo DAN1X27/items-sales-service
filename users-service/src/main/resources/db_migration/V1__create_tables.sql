@@ -67,6 +67,7 @@ CREATE TABLE users
     avatar        VARCHAR DEFAULT '3a2cd62f-121a-48b5-b0aa-e54454d4d996.jpg' NOT NULL,
     country       VARCHAR DEFAULT 'Belarus'                                  NOT NULL,
     city          VARCHAR DEFAULT 'Minsk'                                    NOT NULL,
+    grade         DOUBLE PRECISION,
     CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
