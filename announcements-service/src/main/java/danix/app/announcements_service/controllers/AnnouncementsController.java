@@ -29,8 +29,7 @@ public class AnnouncementsController {
 			@RequestParam(defaultValue = "USD") String currency, @RequestParam(required = false) List<String> filters,
 			@RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO),
-				HttpStatus.OK);
+		return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO), HttpStatus.OK);
 	}
 
 	@GetMapping("/find")
@@ -75,9 +74,14 @@ public class AnnouncementsController {
 
 	@GetMapping("/reports")
 	public ResponseEntity<List<ResponseReportDTO>> getReports(@RequestParam int page, @RequestParam int count,
-				@RequestParam(defaultValue = "USD") String currency,
 				@RequestParam(value = "sort", defaultValue = "DESC") Sort.Direction sort) {
-		return new ResponseEntity<>(announcementsService.getReports(page, count, sort, currency), HttpStatus.OK);
+		return new ResponseEntity<>(announcementsService.getReports(page, count, sort), HttpStatus.OK);
+	}
+
+	@GetMapping("/report/{id}")
+	public ResponseEntity<ShowReportDTO> getReport(@PathVariable long id,
+				@RequestParam(defaultValue = "USD") String currency) {
+		return new ResponseEntity<>(announcementsService.getReport(id, currency), HttpStatus.OK);
 	}
 
 	@DeleteMapping("/report/{id}")
@@ -87,10 +91,11 @@ public class AnnouncementsController {
 	}
 
 	@PostMapping("/{id}/report")
-	public ResponseEntity<DataDTO<Long>> report(@PathVariable Long id,
+	public ResponseEntity<HttpStatus> report(@PathVariable Long id,
 					@RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		return new ResponseEntity<>(announcementsService.report(id, causeDTO.getCause()), HttpStatus.CREATED);
+		announcementsService.report(id, causeDTO.getCause());
+		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
 	@PatchMapping("/{id}")
@@ -126,7 +131,7 @@ public class AnnouncementsController {
 	}
 
 	@DeleteMapping("/{id}/ban")
-	public ResponseEntity<HttpStatus> deleteByAdmin(@PathVariable Long id,
+	public ResponseEntity<HttpStatus> ban(@PathVariable Long id,
 				@RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		announcementsService.ban(id, causeDTO.getCause());

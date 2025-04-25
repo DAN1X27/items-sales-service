@@ -190,18 +190,17 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public DataDTO<Long> report(Long id, String cause) {
+	public void report(Long id, String cause) {
 		Announcement announcement = findById(id);
 		Long userId = getCurrentUser().getId();
 		reportsRepository.findByAnnouncementAndSenderId(announcement, userId).ifPresent(report -> {
 			throw new AnnouncementException("You already send report to this announcement");
 		});
-		Report report = reportsRepository.save(Report.builder()
+		reportsRepository.save(Report.builder()
 			.announcement(announcement)
 			.senderId(userId)
 			.cause(cause)
 			.build());
-		return new DataDTO<>(report.getId());
 	}
 
 	@Transactional
@@ -211,9 +210,16 @@ public class AnnouncementsService {
 		});
 	}
 
-	public List<ResponseReportDTO> getReports(int page, int count, Sort.Direction direction, String currency) {
+	public List<ResponseReportDTO> getReports(int page, int count, Sort.Direction direction) {
 		return reportMapper.toResponseDTOList(reportsRepository
-				.findAll(PageRequest.of(page, count, Sort.by(direction, "id"))).getContent(), currency);
+				.findAll(PageRequest.of(page, count, Sort.by(direction, "id"))).getContent());
+	}
+
+	public ShowReportDTO getReport(long id, String currency) {
+		Report report = reportsRepository.findById(id).orElseThrow(() -> new AnnouncementException("Report not found"));
+		ShowReportDTO showDTO = reportMapper.toShowDTO(report);
+		showDTO.setAnnouncement(announcementMapper.toResponseDTO(report.getAnnouncement(), currency));
+		return showDTO;
 	}
 
 	@Transactional
@@ -313,19 +319,17 @@ public class AnnouncementsService {
 		if (CurrencyCode.USD != currencyCode) {
 			Map<String, Object> response = null;
 			try {
-				response = converterAPI.getCourse(currencyLayerKey, currencyCode.toString(),
-						"USD", 1);
+				response = converterAPI.getCourse(currencyLayerKey, currencyCode.toString(), "USD", 1);
 				Map<String, Object> quotes = (Map<String, Object>) response.get("quotes");
 				double course = (double) quotes.get("USD" + currencyCode);
-				BigDecimal bigDecimal = BigDecimal.valueOf(operation.apply(course));
-				bigDecimal = bigDecimal.setScale(2, RoundingMode.HALF_UP);
+				BigDecimal bigDecimal = BigDecimal.valueOf(operation.apply(course)).setScale(2, RoundingMode.HALF_UP);
 				return bigDecimal.doubleValue();
 			}
 			catch (Exception e) {
                 assert response != null;
                 Map<String, Object> error = (Map<String, Object>) response.get("error");
 				String message = (String) error.get("info");
-				log.error("Error convert price message: {}", message);
+				log.error("Error convert price: {}", message);
 				throw e;
 			}
 		}

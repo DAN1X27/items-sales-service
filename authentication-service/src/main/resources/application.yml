@@ -29,7 +29,7 @@ spring:
       okhttp:
         enabled: true
 server:
-  port: 6060
+  port: 7070
 redis:
   host: ${redis.host}
   port: ${redis.port}

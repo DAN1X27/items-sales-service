@@ -23,7 +23,8 @@ public class FeignConfig {
 				try (InputStream stream = response.body().asInputStream()) {
 					ObjectMapper mapper = new ObjectMapper();
 					Map<String, Object> body = mapper.readValue(stream, new TypeReference<>() {});
-					throw new AnnouncementException((String) body.get("message"));
+					String message = (String) body.get("message");
+					return new AnnouncementException(message);
 				}
 				catch (Exception e) {
 					log.error("Error decoding feign error message: {}", e.getMessage(), e);

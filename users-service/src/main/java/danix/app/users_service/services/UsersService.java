@@ -25,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -81,11 +83,8 @@ public class UsersService {
 
 	public ResponseUserDTO show(Long id) {
 		User user = getById(id);
-		Double grade = !user.getGrades().isEmpty()
-				? user.getGrades().stream().mapToDouble(Grade::getStars).sum() / user.getGrades().size() : null;
 		User currentUser = getCurrentUser();
 		ResponseUserDTO responseUserDTO = userMapper.toResponseUserDTO(user);
-		responseUserDTO.setGrade(grade);
 		responseUserDTO.setIsBlocked(blockedUsersRepository
 				.findByOwnerAndUser(currentUser, user).isPresent());
 		responseUserDTO.setIsCurrentUserBlocked(blockedUsersRepository
@@ -234,11 +233,14 @@ public class UsersService {
 		}
 		gradesRepository.findByUserAndOwner(user, currentUser)
 			.ifPresentOrElse(grade -> grade.setStars(stars),
-					() -> gradesRepository.save(Grade.builder()
-                            .stars(stars)
-                            .user(user)
-                            .owner(currentUser)
-                            .build()));
+			() -> gradesRepository.save(Grade.builder()
+                    .stars(stars)
+                    .user(user)
+                    .owner(currentUser)
+                    .build()));
+		double grade = user.getGrades().stream().mapToDouble(Grade::getStars).sum() / user.getGrades().size();
+		BigDecimal bigDecimal = BigDecimal.valueOf(grade).setScale(1, RoundingMode.HALF_UP);
+		user.setGrade(bigDecimal.doubleValue());
 	}
 
 	public List<ResponseReportDTO> reports(int page, int count) {

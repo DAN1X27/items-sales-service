@@ -40,6 +40,8 @@ public class User {
 
 	private String city;
 
+	private Double grade;
+
 	@OneToMany(mappedBy = "user")
 	private List<Comment> comments;
 
