@@ -99,7 +99,9 @@ public class AnnouncementsController {
 	}
 
 	@PatchMapping("/{id}")
-	public ResponseEntity<HttpStatus> update(@PathVariable Long id, @RequestBody UpdateDTO updateDTO) {
+	public ResponseEntity<HttpStatus> update(@PathVariable Long id, @RequestBody @Valid UpdateDTO updateDTO,
+											 BindingResult bindingResult) {
+		handleRequestErrors(bindingResult);
 		announcementsService.update(id, updateDTO);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}

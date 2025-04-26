@@ -136,7 +136,7 @@ public class AnnouncementsService {
 	public void addImage(MultipartFile image, Long id) {
 		Announcement announcement = findById(id);
 		checkAnnouncementOwner(announcement);
-		if (announcement.getImages().size() == maxImagesCount) {
+		if (announcement.getImages().size() >= maxImagesCount) {
 			throw new AnnouncementException("Images limit acceded");
 		}
 		String uuid = UUID.randomUUID() + ".jpg";
@@ -226,8 +226,8 @@ public class AnnouncementsService {
 	public void delete(Long id) {
 		Announcement announcement = findById(id);
 		checkAnnouncementOwner(announcement);
-		announcementsRepository.delete(announcement);
 		deleteImages(announcement);
+		announcementsRepository.delete(announcement);
 	}
 
 	@Transactional
@@ -243,10 +243,12 @@ public class AnnouncementsService {
 	}
 
 	private void deleteImages(Announcement announcement) {
-		List<String> images = announcement.getImages().stream()
-				.map(Image::getFileName)
-				.toList();
-		listKafkaTemplate.send("deleted_announcements_images", images);
+		if (!announcement.getImages().isEmpty()) {
+			List<String> images = announcement.getImages().stream()
+					.map(Image::getFileName)
+					.toList();
+			listKafkaTemplate.send("deleted_announcements_images", images);
+		}
 	}
 
 	@Transactional
@@ -254,45 +256,30 @@ public class AnnouncementsService {
 		Announcement announcement = findById(id);
 		checkAnnouncementOwner(announcement);
 		if (updateDTO.getTitle() != null) {
-			if (updateDTO.getTitle().isBlank()) {
-				throw new AnnouncementException("Title must not be empty");
-			}
 			announcement.setTitle(updateDTO.getTitle());
 		}
-		if (updateDTO.getDescription() != null && !updateDTO.getDescription().isBlank()) {
+		if (updateDTO.getDescription() != null) {
 			announcement.setDescription(updateDTO.getDescription());
 		}
 		if (updateDTO.getPrice() != null) {
 			if (updateDTO.getCurrency() != null) {
 				announcement
-					.setPrice(convertPrice(updateDTO.getCurrency(), course -> announcement.getPrice() / course));
+					.setPrice(convertPrice(updateDTO.getCurrency(), course -> updateDTO.getPrice() / course));
 			}
 			else {
 				announcement.setPrice(updateDTO.getPrice());
 			}
 		}
 		if (updateDTO.getCity() != null) {
-			if (updateDTO.getCity().isBlank()) {
-				throw new AnnouncementException("City must not be empty");
-			}
 			announcement.setCity(updateDTO.getCity());
 		}
 		if (updateDTO.getCountry() != null) {
-			if (updateDTO.getCountry().isBlank()) {
-				throw new AnnouncementException("Country must not be empty");
-			}
 			announcement.setCountry(updateDTO.getCountry());
 		}
 		if (updateDTO.getPhoneNumber() != null) {
-			if (updateDTO.getPhoneNumber().isBlank()) {
-				throw new AnnouncementException("Phone number must not be empty");
-			}
 			announcement.setPhoneNumber(updateDTO.getPhoneNumber());
 		}
 		if (updateDTO.getType() != null) {
-			if (updateDTO.getType().isBlank()) {
-				throw new AnnouncementException("Type must not be empty");
-			}
 			announcement.setType(updateDTO.getType());
 		}
 	}
