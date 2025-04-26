@@ -16,7 +16,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
-public class JwtFilter extends OncePerRequestFilter {
+public class JWTFilter extends OncePerRequestFilter {
 
 	private final UserDetailsServiceImpl userDetailsService;
 
@@ -26,8 +26,12 @@ public class JwtFilter extends OncePerRequestFilter {
 		String authHeader = request.getHeader("Authorization");
 		try {
 			UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(authHeader);
-			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null,
-					userDetails.getAuthorities());
+			UsernamePasswordAuthenticationToken authToken =
+					new UsernamePasswordAuthenticationToken(
+							userDetails,
+							null,
+							userDetails.getAuthorities()
+					);
 			SecurityContextHolder.getContext().setAuthentication(authToken);
 		}
 		catch (Exception e) {

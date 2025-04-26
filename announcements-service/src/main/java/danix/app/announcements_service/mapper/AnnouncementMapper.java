@@ -18,13 +18,9 @@ import java.util.List;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public abstract class AnnouncementMapper {
 
-    protected AnnouncementsService announcementsService;
-
     @Autowired
     @Lazy
-    private void setAnnouncementsService(AnnouncementsService announcementsService) {
-        this.announcementsService = announcementsService;
-    }
+    protected AnnouncementsService announcementsService;
 
     protected final String PRICE_CONVERT_EXPRESSION =
             "java(announcementsService.convertPrice(currency, course -> announcement.getPrice() * course))";
