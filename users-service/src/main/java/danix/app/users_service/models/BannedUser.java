@@ -1,15 +1,14 @@
 package danix.app.users_service.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "banned_users")
+@Data
 @NoArgsConstructor
-@Getter
-@Setter
+@AllArgsConstructor
+@Builder
 public class BannedUser {
 
 	@Id
@@ -21,10 +20,5 @@ public class BannedUser {
 	@OneToOne
 	@JoinColumn(name = "user_id", referencedColumnName = "id")
 	private User user;
-
-	public BannedUser(String cause, User user) {
-		this.cause = cause;
-		this.user = user;
-	}
 
 }

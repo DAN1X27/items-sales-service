@@ -130,21 +130,12 @@ public class UsersService {
 	public void updateInfo(UpdateInfoDTO updateInfoDTO) {
 		User user = getById(getCurrentUser().getId());
 		if (updateInfoDTO.getUsername() != null) {
-			if (updateInfoDTO.getUsername().isBlank()) {
-				throw new UserException("Username must not be empty");
-			}
 			user.setUsername(updateInfoDTO.getUsername());
 		}
 		if (updateInfoDTO.getCountry() != null) {
-			if (updateInfoDTO.getCountry().isBlank()) {
-				throw new UserException("Country must not be empty");
-			}
 			user.setCountry(updateInfoDTO.getCountry());
 		}
 		if (updateInfoDTO.getCity() != null) {
-			if (updateInfoDTO.getCity().isBlank()) {
-				throw new UserException("City must not be empty");
-			}
 			user.setCity(updateInfoDTO.getCity());
 		}
 	}
@@ -284,7 +275,10 @@ public class UsersService {
 		bannedUsersRepository.findByUser(user).ifPresent(bannedUser -> {
 			throw new UserException("User already banned");
 		});
-		bannedUsersRepository.save(new BannedUser(cause, user));
+		bannedUsersRepository.save(BannedUser.builder()
+				.user(user)
+				.cause(cause)
+				.build());
 		longKafkaTemplate.send("deleted_user_tokens", user.getId());
 		String message = "Your account has been banned due to: " + cause;
 		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(user.getEmail(), message));
