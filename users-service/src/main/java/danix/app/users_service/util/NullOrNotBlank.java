@@ -1,4 +1,4 @@
-package danix.app.announcements_service.util;
+package danix.app.users_service.util;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
@@ -11,6 +11,6 @@ import java.lang.annotation.*;
 @Constraint(validatedBy = NullOrNotBlankValidator.class)
 public @interface NullOrNotBlank {
     String message() default "{javax.validation.constraints.NullOrNotBlank.message}";
-    Class<?>[] groups() default {};
+    Class<?>[] groups() default { };
     Class<? extends Payload>[] payload() default {};
 }
