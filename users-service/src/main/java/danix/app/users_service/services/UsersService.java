@@ -222,13 +222,12 @@ public class UsersService {
 		if (stars > 5 || stars < 1) {
 			throw new UserException("Grade must be between 1 and 5");
 		}
-		gradesRepository.findByUserAndOwner(user, currentUser)
-			.ifPresentOrElse(grade -> grade.setStars(stars),
-			() -> gradesRepository.save(Grade.builder()
-                    .stars(stars)
-                    .user(user)
-                    .owner(currentUser)
-                    .build()));
+		gradesRepository.findByUserAndOwner(user, currentUser).ifPresentOrElse(grade -> grade.setStars(stars),
+			    () -> gradesRepository.save(Grade.builder()
+                        .stars(stars)
+                        .user(user)
+                        .owner(currentUser)
+                        .build()));
 		double grade = user.getGrades().stream().mapToDouble(Grade::getStars).sum() / user.getGrades().size();
 		BigDecimal bigDecimal = BigDecimal.valueOf(grade).setScale(1, RoundingMode.HALF_UP);
 		user.setGrade(bigDecimal.doubleValue());

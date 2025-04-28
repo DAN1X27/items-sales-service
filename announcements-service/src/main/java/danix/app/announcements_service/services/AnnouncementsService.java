@@ -98,12 +98,13 @@ public class AnnouncementsService {
 	}
 
 	private PageRequest getPageRequest(int page, int count, SortDTO sort) {
-		String property = sort == null ? "id" : switch (sort.getType()) {
+		boolean isNull = sort == null;
+		String property = isNull ? "id" : switch (sort.getType()) {
 			case LIKES -> "likesCount";
 			case WATCHES -> "watchesCount";
 			default -> sort.getType().toString().toLowerCase();
 		};
-		Sort.Direction direction = sort == null ? Sort.Direction.DESC : sort.getDirection();
+		Sort.Direction direction = isNull ? Sort.Direction.DESC : sort.getDirection();
 		return PageRequest.of(page, count, Sort.by(direction, property));
 	}
 
