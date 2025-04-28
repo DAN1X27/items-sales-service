@@ -12,8 +12,15 @@ import danix.app.users_service.mapper.UserMapper;
 import danix.app.users_service.models.BannedUser;
 import danix.app.users_service.models.BlockedUser;
 import danix.app.users_service.models.Comment;
+import danix.app.users_service.models.Grade;
+import danix.app.users_service.models.Report;
 import danix.app.users_service.models.User;
-import danix.app.users_service.repositories.*;
+import danix.app.users_service.repositories.BannedUsersRepository;
+import danix.app.users_service.repositories.BlockedUsersRepository;
+import danix.app.users_service.repositories.CommentsRepository;
+import danix.app.users_service.repositories.GradesRepository;
+import danix.app.users_service.repositories.ReportsRepository;
+import danix.app.users_service.repositories.UsersRepository;
 import danix.app.users_service.security.UserDetailsImpl;
 import danix.app.users_service.services.UsersService;
 import danix.app.users_service.util.UserException;
@@ -23,8 +30,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -36,6 +52,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -323,13 +341,260 @@ class UsersServiceTests {
         assertThrows(UserException.class, () -> usersService.deleteComment(comment.getId()));
     }
 
+    @Test
+    public void addGrade() {
+        User testUser = getTestUser();
+        testUser.setGrades(Collections.singletonList(Grade.builder().stars(5).build()));
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(gradesRepository.findByUserAndOwner(testUser, currentUser)).thenReturn(Optional.empty());
+        usersService.addGrade(testUser.getId(), 5);
+        verify(gradesRepository).save(any());
+        assertEquals(5, testUser.getGrade());
+    }
+
+    @Test
+    public void addGradeWhenUserHasGrades() {
+        User testUser = getTestUser();
+        testUser.setGrades(List.of(
+                Grade.builder().stars(5).build(),
+                Grade.builder().stars(4).build(),
+                Grade.builder().stars(3).build(),
+                Grade.builder().stars(2).build()
+        ));
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(gradesRepository.findByUserAndOwner(testUser, currentUser)).thenReturn(Optional.empty());
+        usersService.addGrade(testUser.getId(), 2);
+        verify(gradesRepository).save(any());
+        assertEquals(3.5, testUser.getGrade());
+    }
+
+    @Test
+    public void addGradeWhenUserHasGradeByCurrentUser() {
+        User testUser = getTestUser();
+        testUser.setGrades(Collections.singletonList(Grade.builder().stars(5).build()));
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        Grade grade = Grade.builder().stars(3).build();
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(gradesRepository.findByUserAndOwner(testUser, currentUser)).thenReturn(Optional.of(grade));
+        usersService.addGrade(testUser.getId(), 5);
+        verify(gradesRepository, never()).save(any());
+        assertEquals(5, grade.getStars());
+    }
+
+    @Test
+    public void addGradeWhenUserNotFound() {
+        when(usersRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.addGrade(2L, 5));
+    }
+
+    @Test
+    public void addGradeYourself() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        testUser.setId(currentUser.getId());
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        assertThrows(UserException.class, () -> usersService.addGrade(testUser.getId(), 5));
+    }
+
+    @Test
+    public void addGradeWhenStarsMoreThen5() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        assertThrows(UserException.class, () -> usersService.addGrade(testUser.getId(), 6));
+    }
+
+    @Test
+    public void addGradeWhenStarsLowerThen1() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        assertThrows(UserException.class, () -> usersService.addGrade(testUser.getId(), 0));
+    }
+
+    @Test
+    public void report() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(reportsRepository.findByUserAndSender(testUser, currentUser)).thenReturn(Optional.empty());
+        usersService.report(testUser.getId(), "test_cause");
+        verify(reportsRepository).save(any());
+    }
+
+    @Test
+    public void reportWhenUserNotFound() {
+        when(usersRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.report(2L, "test_cause"));
+    }
+
+    @Test
+    public void reportWhenReportAlreadySent() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(reportsRepository.findByUserAndSender(testUser, currentUser)).thenReturn(Optional.of(new Report()));
+        assertThrows(UserException.class, () -> usersService.report(testUser.getId(), "test_cause"));
+    }
+
+    @Test
+    public void deleteReport() {
+        Report report = new Report();
+        when(reportsRepository.findById(1)).thenReturn(Optional.of(report));
+        usersService.deleteReport(1);
+        verify(reportsRepository).delete(report);
+    }
+
+    @Test
+    public void deleteReportWhenReportNotFound() {
+        when(reportsRepository.findById(1)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.deleteReport(1));
+    }
+
+    @Test
+    public void banUser() {
+        User testUser = getTestUser();
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(bannedUsersRepository.findByUser(testUser)).thenReturn(Optional.empty());
+        usersService.banUser(testUser.getId(), "test_cause");
+        verify(bannedUsersRepository).save(any());
+        verify(longKafkaTemplate).send(eq("deleted_user_tokens"), any());
+        verify(emailMessageKafkaTemplate).send(eq("message"), any());
+    }
+
+    @Test
+    public void banUserWhenUserNotFound() {
+        when(usersRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.banUser(2L, "test_cause"));
+    }
+
+    @Test
+    public void banUserWhenUserAlreadyBanned() {
+        User testUser = getTestUser();
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(bannedUsersRepository.findByUser(testUser)).thenReturn(Optional.of(new BannedUser()));
+        assertThrows(UserException.class, () -> usersService.banUser(testUser.getId(), "test_cause"));
+    }
+
+    @Test
+    public void unbanUser() {
+        User testUser = getTestUser();
+        BannedUser bannedUser = BannedUser.builder().build();
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(bannedUsersRepository.findByUser(testUser)).thenReturn(Optional.of(bannedUser));
+        usersService.unbanUser(testUser.getId());
+        verify(bannedUsersRepository).delete(bannedUser);
+        verify(emailMessageKafkaTemplate).send(eq("message"), any());
+    }
+
+    @Test
+    public void unbanUserWhenUserNotFound() {
+        when(usersRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.unbanUser(2L));
+    }
+
+    @Test
+    public void unbanUserWhenUserNotBanned() {
+        User testUser = getTestUser();
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(bannedUsersRepository.findByUser(testUser)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.unbanUser(testUser.getId()));
+    }
+
+    @Test
+    public void delete() {
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(currentUser.getId())).thenReturn(Optional.of(currentUser));
+        usersService.delete();
+        verify(usersRepository).delete(currentUser);
+        verify(filesService).deleteAvatar(eq(currentUser.getAvatar()), any());
+        verify(longKafkaTemplate).send("deleted_user", currentUser.getId());
+    }
+
+    @Test
+    public void deleteWhenUserHasDefaultAvatar() {
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        ReflectionTestUtils.setField(usersService, "defaultAvatar", currentUser.getAvatar());
+        when(usersRepository.findById(currentUser.getId())).thenReturn(Optional.of(currentUser));
+        usersService.delete();
+        verify(usersRepository).delete(currentUser);
+        verify(filesService, never()).deleteAvatar(eq(currentUser.getAvatar()), any());
+        verify(longKafkaTemplate).send("deleted_user", currentUser.getId());
+    }
+
+    @Test
+    public void blockUser() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(blockedUsersRepository.findByOwnerAndUser(currentUser, testUser)).thenReturn(Optional.empty());
+        usersService.blockUser(testUser.getId());
+        verify(blockedUsersRepository).save(any());
+    }
+
+    @Test
+    public void blockUserWhenUserNotFound() {
+        when(usersRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.blockUser(2L));
+    }
+
+    @Test
+    public void blockUserWhenUserAlreadyBlocked() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(blockedUsersRepository.findByOwnerAndUser(currentUser, testUser)).thenReturn(Optional.of(new BlockedUser()));
+        assertThrows(UserException.class, () -> usersService.blockUser(testUser.getId()));
+    }
+
+    @Test
+    public void unblockUser() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(blockedUsersRepository.findByOwnerAndUser(currentUser, testUser)).thenReturn(Optional.of(new BlockedUser()));
+        usersService.unblockUser(testUser.getId());
+        verify(blockedUsersRepository).delete(any());
+    }
+
+    @Test
+    public void unblockUserWhenUserNotFound() {
+        when(usersRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.unblockUser(2L));
+    }
+
+    @Test
+    public void unblockUserWhenUserIsNotBlocked() {
+        User testUser = getTestUser();
+        User currentUser = getTestCurrentUser();
+        mockCurrentUser(currentUser);
+        when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(blockedUsersRepository.findByOwnerAndUser(currentUser, testUser)).thenReturn(Optional.empty());
+        assertThrows(UserException.class, () -> usersService.unblockUser(testUser.getId()));
+    }
+
     private void mockCurrentUser(User user) {
         SecurityContextHolder.setContext(securityContext);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(new UserDetailsImpl(user));
     }
 
-    private static User getTestCurrentUser() {
+    private User getTestCurrentUser() {
         return User.builder()
                 .id(1L)
                 .username("user1")
@@ -343,7 +608,7 @@ class UsersServiceTests {
                 .build();
     }
 
-    private static User getTestUser() {
+    private User getTestUser() {
         return User.builder()
                 .id(2L)
                 .username("user2")

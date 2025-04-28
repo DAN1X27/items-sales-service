@@ -7,7 +7,6 @@ import lombok.*;
 @Data
 @Builder
 @AllArgsConstructor
-@NoArgsConstructor
 public class UpdateDTO {
 
 	@NullOrNotBlank(message = "Title must not be empty")

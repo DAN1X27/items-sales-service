@@ -450,7 +450,7 @@ class AnnouncementsServiceTests {
     @Test
     public void updateWhenAnnouncementNotFound() {
         when(announcementsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.update(1L, new UpdateDTO()));
+        assertThrows(AnnouncementException.class, () -> announcementsService.update(1L, UpdateDTO.builder().build()));
     }
 
     @Test
@@ -459,7 +459,7 @@ class AnnouncementsServiceTests {
         announcement.setOwnerId(2L);
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
-        assertThrows(AnnouncementException.class, () -> announcementsService.update(announcement.getId(), new UpdateDTO()));
+        assertThrows(AnnouncementException.class, () -> announcementsService.update(announcement.getId(), UpdateDTO.builder().build()));
     }
 
     private Announcement getTestAnnouncement() {
