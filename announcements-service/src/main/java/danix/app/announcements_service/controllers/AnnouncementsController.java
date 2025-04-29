@@ -25,37 +25,37 @@ public class AnnouncementsController {
 	private final AnnouncementsService announcementsService;
 
 	@GetMapping
-	public ResponseEntity<List<ResponseDTO>> findAll(@RequestParam int page, @RequestParam int count,
-			@RequestParam(defaultValue = "USD") String currency, @RequestParam(required = false) List<String> filters,
-			@RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
+	public ResponseEntity<List<ResponseAnnouncementDTO>> findAll(@RequestParam int page, @RequestParam int count,
+																 @RequestParam(defaultValue = "USD") String currency, @RequestParam(required = false) List<String> filters,
+																 @RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO), HttpStatus.OK);
 	}
 
 	@GetMapping("/find")
-	public ResponseEntity<List<ResponseDTO>> findAnnouncements(@RequestParam String title,
-			@RequestParam(defaultValue = "USD") String currency, @RequestParam int page, @RequestParam int count,
-			@RequestParam(required = false) List<String> filters, @RequestBody(required = false) @Valid SortDTO sortDTO,
-			BindingResult bindingResult) {
+	public ResponseEntity<List<ResponseAnnouncementDTO>> findAnnouncements(@RequestParam String title,
+																		   @RequestParam(defaultValue = "USD") String currency, @RequestParam int page, @RequestParam int count,
+																		   @RequestParam(required = false) List<String> filters, @RequestBody(required = false) @Valid SortDTO sortDTO,
+																		   BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO),
 				HttpStatus.OK);
 	}
 
 	@GetMapping("/user/{id}")
-	public ResponseEntity<List<ResponseDTO>> getAllByUser(@PathVariable Long id,
-			@RequestParam(defaultValue = "USD") String currency) {
+	public ResponseEntity<List<ResponseAnnouncementDTO>> getAllByUser(@PathVariable Long id,
+																	  @RequestParam(defaultValue = "USD") String currency) {
 		return new ResponseEntity<>(announcementsService.findAllByUser(id, currency), HttpStatus.OK);
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<ShowDTO> show(@PathVariable Long id, @RequestParam(defaultValue = "USD") String currency) {
+	public ResponseEntity<ShowAnnouncementDTO> show(@PathVariable Long id, @RequestParam(defaultValue = "USD") String currency) {
 		return new ResponseEntity<>(announcementsService.show(id, currency), HttpStatus.OK);
 	}
 
 	@PostMapping
 	public ResponseEntity<DataDTO<Long>> create(@RequestParam(defaultValue = "USD") String currency,
-			@RequestBody @Valid CreateDTO createDTO, BindingResult bindingResult) {
+												@RequestBody @Valid CreateAnnouncementDTO createDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		return new ResponseEntity<>(announcementsService.save(createDTO, currency), HttpStatus.CREATED);
 	}
@@ -137,6 +137,12 @@ public class AnnouncementsController {
 				@RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		announcementsService.ban(id, causeDTO.getCause());
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@DeleteMapping("/expired")
+	public ResponseEntity<HttpStatus> deleteExpiredAnnouncements() {
+		announcementsService.deleteExpiredAnnouncements();
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 

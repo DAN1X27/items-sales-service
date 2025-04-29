@@ -72,7 +72,7 @@ public class AnnouncementsService {
 	@Value("${access_key}")
 	private String accessKey;
 
-	public List<ResponseDTO> findAll(int page, int count, String currency, List<String> filters, SortDTO sortDTO) {
+	public List<ResponseAnnouncementDTO> findAll(int page, int count, String currency, List<String> filters, SortDTO sortDTO) {
 		User user = getCurrentUser();
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
 		if (filters != null) {
@@ -83,7 +83,7 @@ public class AnnouncementsService {
 				.findAllByCountryAndCity(user.getCountry(), user.getCity(), pageRequest), currency);
 	}
 
-	public List<ResponseDTO> findByTitle(int page, int count, String title, String currency, List<String> filters,
+	public List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, String currency, List<String> filters,
 			SortDTO sortDTO) {
 		User user = getCurrentUser();
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
@@ -108,7 +108,7 @@ public class AnnouncementsService {
 		return PageRequest.of(page, count, Sort.by(direction, property));
 	}
 
-	public List<ResponseDTO> findAllByUser(Long id, String currency) {
+	public List<ResponseAnnouncementDTO> findAllByUser(Long id, String currency) {
 		return announcementMapper.toResponseDTOList(announcementsRepository.findAllByOwnerId(id), currency);
 	}
 
@@ -118,7 +118,7 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public DataDTO<Long> save(CreateDTO createDTO, String currency) {
+	public DataDTO<Long> save(CreateAnnouncementDTO createDTO, String currency) {
 		Announcement announcement = announcementMapper.fromCreateDTO(createDTO);
 		announcement.setCreatedAt(LocalDateTime.now());
 		announcement.setOwnerId(getCurrentUser().getId());
@@ -177,15 +177,15 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public ShowDTO show(Long id, String currency) {
+	public ShowAnnouncementDTO show(Long id, String currency) {
 		Announcement announcement = findById(id);
 		Long userId = getCurrentUser().getId();
 		watchesRepository.findByAnnouncementAndUserId(announcement, userId).orElseGet(() -> {
 			announcement.setWatchesCount(announcement.getWatchesCount() + 1);
 			return watchesRepository.save(new Watch(announcement, userId));
 		});
-		ShowDTO showDTO = announcementMapper.toShowDTO(announcement, currency);
-		showDTO.setExpiredTime(announcement.getCreatedAt().plusDays(storageDays));
+		ShowAnnouncementDTO showDTO = announcementMapper.toShowDTO(announcement, currency);
+		showDTO.setExpiredDate(announcement.getCreatedAt().plusDays(storageDays));
 		showDTO.setLiked(likesRepository.findByAnnouncementAndUserId(announcement, userId).isPresent());
 		return showDTO;
 	}
@@ -285,17 +285,6 @@ public class AnnouncementsService {
 		}
 	}
 
-	@Transactional
-	@KafkaListener(topics = "deleted_user", containerFactory = "containerFactory")
-	public void deletedUserListener(Long id) {
-		List<Announcement> announcements = announcementsRepository.findAllByOwnerId(id);
-		List<String> images = announcements.stream()
-			.flatMap(announcement -> announcement.getImages().stream().map(Image::getFileName))
-			.toList();
-		listKafkaTemplate.send("deleted_announcements_images", images);
-		announcementsRepository.deleteAll(announcements);
-	}
-
 	public double convertPrice(String currency, Function<Double, Double> operation) {
 		CurrencyCode currencyCode;
 		try {
@@ -322,6 +311,23 @@ public class AnnouncementsService {
 			}
 		}
 		return operation.apply(1.0);
+	}
+
+	@Transactional
+	public void deleteExpiredAnnouncements() {
+		announcementsRepository.deleteAll(announcementsRepository
+				.findAllByCreatedAtBefore(LocalDateTime.now().minusDays(storageDays)));
+	}
+
+	@Transactional
+	@KafkaListener(topics = "deleted_user", containerFactory = "containerFactory")
+	public void deletedUserListener(Long id) {
+		List<Announcement> announcements = announcementsRepository.findAllByOwnerId(id);
+		List<String> images = announcements.stream()
+				.flatMap(announcement -> announcement.getImages().stream().map(Image::getFileName))
+				.toList();
+		listKafkaTemplate.send("deleted_announcements_images", images);
+		announcementsRepository.deleteAll(announcements);
 	}
 
 	private void checkAnnouncementOwner(Announcement announcement) {

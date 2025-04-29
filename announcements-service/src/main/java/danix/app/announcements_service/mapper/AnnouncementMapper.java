@@ -1,8 +1,8 @@
 package danix.app.announcements_service.mapper;
 
-import danix.app.announcements_service.dto.CreateDTO;
-import danix.app.announcements_service.dto.ResponseDTO;
-import danix.app.announcements_service.dto.ShowDTO;
+import danix.app.announcements_service.dto.CreateAnnouncementDTO;
+import danix.app.announcements_service.dto.ResponseAnnouncementDTO;
+import danix.app.announcements_service.dto.ShowAnnouncementDTO;
 import danix.app.announcements_service.models.Announcement;
 import danix.app.announcements_service.models.Image;
 import danix.app.announcements_service.services.AnnouncementsService;
@@ -27,15 +27,15 @@ public abstract class AnnouncementMapper {
 
     @Mapping(target = "imageId", source = "announcement", qualifiedByName = "imageId")
     @Mapping(target = "price", expression = PRICE_CONVERT_EXPRESSION)
-    public abstract ResponseDTO toResponseDTO(Announcement announcement, String currency);
+    public abstract ResponseAnnouncementDTO toResponseDTO(Announcement announcement, String currency);
 
     @Mapping(target = "imagesIds", source = "announcement", qualifiedByName = "images")
     @Mapping(target = "price", expression = PRICE_CONVERT_EXPRESSION)
-    public abstract ShowDTO toShowDTO(Announcement announcement, String currency);
+    public abstract ShowAnnouncementDTO toShowDTO(Announcement announcement, String currency);
 
-    public abstract Announcement fromCreateDTO(CreateDTO announcement);
+    public abstract Announcement fromCreateDTO(CreateAnnouncementDTO announcement);
 
-    public List<ResponseDTO> toResponseDTOList(List<Announcement> announcements, String currency) {
+    public List<ResponseAnnouncementDTO> toResponseDTOList(List<Announcement> announcements, String currency) {
         return announcements.stream()
                 .map(announcement -> toResponseDTO(announcement, currency))
                 .toList();

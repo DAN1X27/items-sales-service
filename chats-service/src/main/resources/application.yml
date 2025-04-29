@@ -1,7 +1,6 @@
 spring:
   flyway:
     locations: classpath:db_migration
-    baseline-on-migrate: true
   application:
     name: 'chats-service'
   config:

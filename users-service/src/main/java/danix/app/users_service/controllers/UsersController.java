@@ -216,6 +216,12 @@ public class UsersController {
 		return new ResponseEntity<>(usersService.isBlockedByUser(id), HttpStatus.OK);
 	}
 
+	@DeleteMapping("/temp")
+	public ResponseEntity<HttpStatus> deleteTempUsers() {
+		usersService.deleteTempUsers();
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
 	@ExceptionHandler
 	public ResponseEntity<ErrorResponse> handleException(UserException e) {
 		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);

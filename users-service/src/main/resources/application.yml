@@ -8,7 +8,6 @@ spring:
     url: ${db.url}
   flyway:
     locations: classpath:db_migration
-    baseline-on-migrate: true
   servlet:
     multipart:
       max-file-size: ${max-file-size}

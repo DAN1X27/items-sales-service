@@ -3,8 +3,10 @@ package danix.app.announcements_service.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Data
-public class ResponseDTO {
+public class ResponseAnnouncementDTO {
 
 	private Long id;
 
@@ -20,5 +22,8 @@ public class ResponseDTO {
 
 	@JsonProperty("likes")
 	int likesCount;
+
+	@JsonProperty("created_at")
+	private LocalDateTime createdAt;
 
 }

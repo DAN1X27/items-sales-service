@@ -1,6 +1,7 @@
 package danix.app.announcements_service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import danix.app.announcements_service.util.NullOrNotBlank;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -9,12 +10,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CreateDTO {
+public class CreateAnnouncementDTO {
 
 	@NotBlank(message = "Title must not be empty")
 	@Size(max = 100, message = "Title cannot be longer then 100 characters")
 	private String title;
 
+	@NullOrNotBlank(message = "Description must not be empty")
 	@Size(max = 250, message = "Description cannot be longer then 250 characters")
 	private String description;
 

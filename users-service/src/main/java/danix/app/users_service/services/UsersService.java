@@ -323,6 +323,12 @@ public class UsersService {
 			});
 	}
 
+	@Transactional
+	public void deleteTempUsers() {
+		usersRepository.deleteAllByStatusAndRegisteredAtBefore(User.Status.TEMPORALLY_REGISTERED,
+				LocalDateTime.now().minusDays(1));
+	}
+
 	public List<DataDTO<Long>> getBlockedUsers(int page, int count) {
 		return blockedUsersRepository
 				.findAllByOwner(getCurrentUser(), PageRequest.of(page, count,
