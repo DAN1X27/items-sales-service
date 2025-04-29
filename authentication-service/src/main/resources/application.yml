@@ -1,8 +1,6 @@
 spring:
   flyway:
     locations: classpath:db_migration
-    baseline-on-migrate: true
-    community-db-support-enabled: false
   application:
     name: 'authentication-service'
   datasource:

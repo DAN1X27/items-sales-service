@@ -33,7 +33,7 @@ public class SecurityConfig {
 				.requestMatchers("/error")
 				.permitAll()
 				.requestMatchers("/users/registration", "/users/registration/confirm", "/users/authentication",
-						"/users/password/reset", "/users/{id}/email", "/users/email")
+						"/users/password/reset", "/users/{id}/email", "/users/email", "/users/temp")
 				.access(accessKeyAuthManager())
 				.requestMatchers("/users/reports", "/users/report/", "/users/{id}/ban", "/users/{id}/unban",
 						"/users/banned")

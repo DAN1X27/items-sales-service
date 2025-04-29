@@ -1,0 +1,28 @@
+server:
+  port: 8090
+spring:
+  application:
+    name: tasks-service
+  config:
+    import: 'configserver:'
+  cloud:
+    config:
+      uri: ${config.uri}
+      username: ${config.username}
+      password: ${config.password}
+eureka:
+  instance:
+    instanceId: ${spring.application.name}
+    hostname: ${eureka.client.hostname}
+    preferIpAddress: false
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${eureka.server.url}
+access_key: ${access_key}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh

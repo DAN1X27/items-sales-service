@@ -4,7 +4,7 @@ Service for selling items using announcements on Java Spring Boot, Spring Cloud.
 ```
 # LAUNCH
 ```
-Use command 'docker-compose up --build' in db, eureka-server, config-server and kafka.
+Use command 'docker-compose up --build' in db, eureka-server, config-server and kafka, and use command 'docker network create items-sales-service-net'.
 After these services are started, use this command for other services.
 ```
 # ENDPOINTS

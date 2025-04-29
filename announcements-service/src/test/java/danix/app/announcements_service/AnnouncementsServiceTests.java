@@ -92,7 +92,7 @@ class AnnouncementsServiceTests {
 
     @Test
     public void save() {
-        CreateDTO createDTO = new CreateDTO();
+        CreateAnnouncementDTO createDTO = new CreateAnnouncementDTO();
         Announcement announcement = getTestAnnouncement();
         when(announcementMapper.fromCreateDTO(createDTO)).thenReturn(announcement);
         mockCurrentUser();
@@ -102,7 +102,7 @@ class AnnouncementsServiceTests {
 
     @Test
     public void saveWhenCurrencyIsInvalid() {
-        CreateDTO createDTO = new CreateDTO();
+        CreateAnnouncementDTO createDTO = new CreateAnnouncementDTO();
         Announcement announcement = getTestAnnouncement();
         when(announcementMapper.fromCreateDTO(createDTO)).thenReturn(announcement);
         mockCurrentUser();
@@ -243,13 +243,13 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(watchesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
-        when(announcementMapper.toShowDTO(announcement, "USD")).thenReturn(new ShowDTO());
+        when(announcementMapper.toShowDTO(announcement, "USD")).thenReturn(new ShowAnnouncementDTO());
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
         ReflectionTestUtils.setField(announcementsService, "storageDays", 30);
-        ShowDTO showDTO = announcementsService.show(announcement.getId(), "USD");
+        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), "USD");
         verify(watchesRepository).save(any(Watch.class));
         assertEquals(1, announcement.getWatchesCount());
-        assertEquals(announcement.getCreatedAt().plusDays(30), showDTO.getExpiredTime());
+        assertEquals(announcement.getCreatedAt().plusDays(30), showDTO.getExpiredDate());
         assertFalse(showDTO.isLiked());
     }
 
@@ -259,9 +259,9 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(watchesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Watch()));
-        when(announcementMapper.toShowDTO(announcement, "USD")).thenReturn(new ShowDTO());
+        when(announcementMapper.toShowDTO(announcement, "USD")).thenReturn(new ShowAnnouncementDTO());
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Like()));
-        ShowDTO showDTO = announcementsService.show(announcement.getId(), "USD");
+        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), "USD");
         assertTrue(showDTO.isLiked());
     }
 
@@ -316,7 +316,7 @@ class AnnouncementsServiceTests {
         Report report = Report.builder().id(1L).announcement(announcement).build();
         when(reportsRepository.findById(report.getId())).thenReturn(Optional.of(report));
         when(reportMapper.toShowDTO(report)).thenReturn(new ShowReportDTO());
-        ResponseDTO announcementDTO = new ResponseDTO();
+        ResponseAnnouncementDTO announcementDTO = new ResponseAnnouncementDTO();
         when(announcementMapper.toResponseDTO(announcement, "USD")).thenReturn(announcementDTO);
         ShowReportDTO showDTO = announcementsService.getReport(report.getId(), "USD");
         assertEquals(announcementDTO, showDTO.getAnnouncement());

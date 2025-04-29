@@ -165,6 +165,11 @@ public class AuthController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
+	@DeleteMapping("/tokens/expired")
+	public void deleteExpiredTokens() {
+		tokensService.deleteExpiredTokens();
+	}
+
 	@ExceptionHandler
 	public ResponseEntity<ErrorResponse> handleException(AuthenticationException e) {
 		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
