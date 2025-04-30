@@ -7,15 +7,15 @@ import danix.app.chats_service.feign.UsersService;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.ChatsRepository;
-import danix.app.chats_service.repositories.MessagesRepository;
+import danix.app.chats_service.repositories.ChatsMessagesRepository;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,20 +25,22 @@ import java.util.List;
 import java.util.Map;
 
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
+import static danix.app.chats_service.util.ContentType.IMAGE;
+import static danix.app.chats_service.util.ContentType.TEXT;
+import static danix.app.chats_service.util.ContentType.VIDEO;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatsService {
 
 	private final ChatsRepository chatsRepository;
 
-	private final MessagesRepository messagesRepository;
+	private final ChatsMessagesRepository messagesRepository;
 
 	private final UsersService usersService;
 
 	private final SimpMessagingTemplate messagingTemplate;
-
-	private final KafkaTemplate<String, List<String>> kafkaTemplate;
 
 	private final MessagesService messagesService;
 
@@ -79,7 +81,7 @@ public class ChatsService {
 
 	@Transactional
 	public DataDTO<Long> sendTextMessage(long chatId, String text, String token) {
-		ChatMessage message = saveMessage(chatId, text, ContentType.TEXT, token);
+		ChatMessage message = saveMessage(chatId, text, TEXT, token);
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
@@ -127,12 +129,11 @@ public class ChatsService {
 	public void delete(long id) {
 		UsersChat chat = chatsRepository.findById(id).orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
-		List<String> files = messagesRepository
-			.findAllByChatAndContentTypeIn(chat, List.of(ContentType.IMAGE, ContentType.VIDEO)).stream()
-				.map(ChatMessage::getText)
-				.toList();
-		kafkaTemplate.send("deleted_chat", files);
-		chatsRepository.deleteById(chat.getId());
+		messagesService.deleteFiles(
+				page -> messagesRepository.findAllByChatAndContentTypeIn(chat, List.of(IMAGE, VIDEO),
+						PageRequest.of(page, 50)),
+				() -> chatsRepository.deleteById(id)
+		);
 		User currentUser = getCurrentUser();
 		long userId = chat.getUser1Id() == currentUser.getId() ? chat.getUser2Id() : chat.getUser1Id();
 		Map<String, Object> response = Map.of("deleted_chat", chat.getId());

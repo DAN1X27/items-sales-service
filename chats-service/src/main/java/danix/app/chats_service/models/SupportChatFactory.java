@@ -5,7 +5,7 @@ import danix.app.chats_service.util.ContentType;
 
 import java.time.LocalDateTime;
 
-public class SupportChatFactory extends ChatFactory {
+class SupportChatFactory extends ChatFactory {
 
     @Override
     public Chat createChat(Long user1Id, Long user2Id) {

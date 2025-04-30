@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +22,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
+import static danix.app.chats_service.models.SupportChat.Status.CLOSED;
+import static danix.app.chats_service.models.SupportChat.Status.IN_PROCESSING;
+import static danix.app.chats_service.models.SupportChat.Status.WAIT;
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
+import static danix.app.chats_service.util.ContentType.IMAGE;
+import static danix.app.chats_service.util.ContentType.TEXT;
+import static danix.app.chats_service.util.ContentType.VIDEO;
 
 @Service
 @RequiredArgsConstructor
@@ -36,8 +41,6 @@ public class SupportChatsService {
 	private final SimpMessagingTemplate messagingTemplate;
 
 	private final MessagesService messagesService;
-
-	private final KafkaTemplate<String, List<String>> kafkaTemplate;
 
 	private final MessageMapper messageMapper;
 
@@ -58,7 +61,7 @@ public class SupportChatsService {
 		catch (IllegalArgumentException e) {
 			throw new ChatException("Invalid sort type");
 		}
-		List<SupportChat> chats = chatsRepository.findAllByStatus(SupportChat.Status.WAIT, PageRequest.of(page, count,
+		List<SupportChat> chats = chatsRepository.findAllByStatus(WAIT, PageRequest.of(page, count,
 				Sort.by(sortDirection, "id")));
 		return chatMapper.toResponseSupportChatDTOList(chats);
 	}
@@ -74,7 +77,7 @@ public class SupportChatsService {
 	@Transactional
 	public DataDTO<Long> create(String message) {
 		User user = getCurrentUser();
-		List<SupportChat.Status> statuses = List.of(SupportChat.Status.WAIT, SupportChat.Status.IN_PROCESSING);
+		List<SupportChat.Status> statuses = List.of(WAIT, IN_PROCESSING);
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
 		});
@@ -87,10 +90,10 @@ public class SupportChatsService {
 	public void close(long id) {
 		SupportChat chat = getById(id);
 		checkAccess(chat);
-		if (chat.getStatus() == SupportChat.Status.CLOSED) {
+		if (chat.getStatus() == CLOSED) {
 			throw new ChatException("Chat is already closed");
 		}
-		chat.setStatus(SupportChat.Status.CLOSED);
+		chat.setStatus(CLOSED);
 		sendUpdatedStatusMessage(chat.getId(), chat.getStatus());
 	}
 
@@ -104,7 +107,7 @@ public class SupportChatsService {
 			case WAIT -> throw new ChatException("Chat already in wait status");
 			case CLOSED -> throw new ChatException("Chat is closed");
 		}
-		chat.setStatus(SupportChat.Status.WAIT);
+		chat.setStatus(WAIT);
 		sendUpdatedStatusMessage(chat.getId(), chat.getStatus());
 	}
 
@@ -116,13 +119,13 @@ public class SupportChatsService {
 			case IN_PROCESSING -> throw new ChatException("Chat is already in processing status");
 		}
 		chat.setAdminId(getCurrentUser().getId());
-		chat.setStatus(SupportChat.Status.IN_PROCESSING);
+		chat.setStatus(IN_PROCESSING);
 		sendUpdatedStatusMessage(chat.getId(), chat.getStatus());
 	}
 
 	@Transactional
 	public DataDTO<Long> sendTextMessage(String text, long id) {
-		SupportChatMessage message = saveMessage(id, text, ContentType.TEXT);
+		SupportChatMessage message = saveMessage(id, text, TEXT);
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
@@ -144,7 +147,7 @@ public class SupportChatsService {
 
 	private SupportChatMessage saveMessage(long id, String text, ContentType contentType) {
 		SupportChat chat = getById(id);
-		if (chat.getStatus() == SupportChat.Status.CLOSED) {
+		if (chat.getStatus() == CLOSED) {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
@@ -169,12 +172,11 @@ public class SupportChatsService {
 	public void delete(long id) {
 		SupportChat chat = getById(id);
 		checkAccess(chat);
-		List<String> files = messagesRepository
-			.findAllByChatAndContentTypeIn(chat, List.of(ContentType.IMAGE, ContentType.VIDEO)).stream()
-				.map(SupportChatMessage::getText)
-				.toList();
-		kafkaTemplate.send("deleted_chat", files);
-		chatsRepository.deleteById(chat.getId());
+		messagesService.deleteFiles(
+				page -> messagesRepository.findAllByChatAndContentTypeIn(chat, List.of(IMAGE, VIDEO),
+						PageRequest.of(page, 50)),
+				() -> chatsRepository.deleteById(id)
+		);
 		messagingTemplate.convertAndSend("/topic/support/" + chat.getId(),
 				Map.of("deleted_chat", chat.getId()));
 	}
