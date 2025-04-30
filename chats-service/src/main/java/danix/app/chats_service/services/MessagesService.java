@@ -11,12 +11,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
 
@@ -27,6 +30,8 @@ public class MessagesService {
 	private final FilesService filesService;
 
 	private final SimpMessagingTemplate messagingTemplate;
+
+	private final KafkaTemplate<String, List<String>> kafkaTemplate;
 
 	@Value("${access_key}")
 	private String accessKey;
@@ -55,7 +60,7 @@ public class MessagesService {
 				.body(data);
 	}
 
-	public DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable deleteFunc) {
+	public DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable delete) {
 		try {
 			switch (contentType) {
 				case IMAGE -> filesService.saveImage(file, message.getText(), accessKey);
@@ -64,7 +69,7 @@ public class MessagesService {
 			}
 		}
 		catch (Exception e) {
-			deleteFunc.run();
+			delete.run();
 			throw e;
 		}
 		return new DataDTO<>(message.getId());
@@ -84,17 +89,35 @@ public class MessagesService {
 		messagingTemplate.convertAndSend(topic, response);
 	}
 
-	public void deleteMessage(Message message, String topic, Runnable deleteFunction) {
+	public void deleteMessage(Message message, String topic, Runnable delete) {
 		User user = getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");
 		}
-		deleteFunction.run();
+		delete.run();
 		switch (message.getContentType()) {
 			case IMAGE -> filesService.deleteImage(message.getText(), accessKey);
 			case VIDEO -> filesService.deleteVideo(message.getText(), accessKey);
 		}
 		messagingTemplate.convertAndSend(topic, Map.of("deleted_message", message.getId()));
+	}
+
+	public void deleteFiles(Function<Integer, List<? extends Message>> getFiles, Runnable deleteChat) {
+		Thread.startVirtualThread(() -> {
+			int page = 0;
+			List<String> files;
+			do {
+				files = getFiles.apply(page).stream()
+						.map(Message::getText)
+						.toList();
+				if (!files.isEmpty()) {
+					kafkaTemplate.send("deleted_chat", files);
+					page++;
+				}
+			}
+			while (!files.isEmpty());
+			deleteChat.run();
+		});
 	}
 
 	public static String getFileName(ContentType contentType) {

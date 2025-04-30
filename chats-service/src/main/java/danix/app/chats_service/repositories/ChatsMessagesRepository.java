@@ -11,9 +11,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface MessagesRepository extends JpaRepository<ChatMessage, Long> {
+public interface ChatsMessagesRepository extends JpaRepository<ChatMessage, Long> {
 
-	List<ChatMessage> findAllByChatAndContentTypeIn(UsersChat chat, List<ContentType> contentType);
+	List<ChatMessage> findAllByChatAndContentTypeIn(UsersChat chat, List<ContentType> contentType, Pageable pageable);
 
 	List<Message> findAllByChat(UsersChat chat, Pageable pageable);
 
