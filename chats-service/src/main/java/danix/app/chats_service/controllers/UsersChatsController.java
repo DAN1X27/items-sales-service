@@ -4,7 +4,7 @@ import danix.app.chats_service.dto.MessageDTO;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
-import danix.app.chats_service.services.ChatsService;
+import danix.app.chats_service.services.UsersChatsService;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import danix.app.chats_service.util.ErrorResponse;
@@ -22,9 +22,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/chats")
 @RequiredArgsConstructor
-public class ChatsController {
+public class UsersChatsController {
 
-	private final ChatsService chatsService;
+	private final UsersChatsService chatsService;
 
 	@GetMapping
 	public ResponseEntity<List<ResponseChatDTO>> getUserChats() {

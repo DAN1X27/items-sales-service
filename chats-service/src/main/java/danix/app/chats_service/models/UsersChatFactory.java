@@ -5,15 +5,18 @@ import danix.app.chats_service.util.ContentType;
 
 import java.time.LocalDateTime;
 
-class UsersChatFactory extends ChatFactory {
+class UsersChatFactory implements AbstractChatFactory {
 
     @Override
-    public Chat createChat(Long user1Id, Long user2Id) {
-        return new UsersChat(user1Id, user2Id);
+    public Chat getChat(Long user1Id, Long user2Id) {
+        return UsersChat.builder()
+                .user1Id(user1Id)
+                .user2Id(user2Id)
+                .build();
     }
 
     @Override
-    public Message createMessage(String text, Chat chat, ContentType contentType) {
+    public Message getMessage(String text, Chat chat, ContentType contentType) {
         return ChatMessage.builder()
                 .chat((UsersChat) chat)
                 .senderId(UserDetailsServiceImpl.getCurrentUser().getId())

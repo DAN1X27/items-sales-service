@@ -18,3 +18,5 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify -f ./announcements-service/pom.xml
       - name: users-service maven build
         run: mvn --batch-mode --update-snapshots verify -f ./users-service/pom.xml
+      - name: chats-service maven build
+        run: mvn --batch-mode --update-snapshots verify -f ./chats-service/pom.xml

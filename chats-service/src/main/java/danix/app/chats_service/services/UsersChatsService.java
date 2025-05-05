@@ -6,8 +6,8 @@ import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feign.UsersService;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
-import danix.app.chats_service.repositories.ChatsRepository;
-import danix.app.chats_service.repositories.ChatsMessagesRepository;
+import danix.app.chats_service.repositories.UsersChatsRepository;
+import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
@@ -25,18 +25,15 @@ import java.util.List;
 import java.util.Map;
 
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
-import static danix.app.chats_service.util.ContentType.IMAGE;
-import static danix.app.chats_service.util.ContentType.TEXT;
-import static danix.app.chats_service.util.ContentType.VIDEO;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ChatsService {
+public class UsersChatsService {
 
-	private final ChatsRepository chatsRepository;
+	private final UsersChatsRepository chatsRepository;
 
-	private final ChatsMessagesRepository messagesRepository;
+	private final UsersChatsMessagesRepository messagesRepository;
 
 	private final UsersService usersService;
 
@@ -46,7 +43,7 @@ public class ChatsService {
 
 	private final MessageMapper messageMapper;
 
-	private static final ChatFactory factory = ChatFactory.getFactory(FactoryType.USERS_CHAT_FACTORY);
+	private static final AbstractChatFactory factory = AbstractChatFactory.getFactory(ChatType.USERS_CHAT);
 
 	public List<ResponseChatDTO> getUserChats() {
 		User currentUser = getCurrentUser();
@@ -73,7 +70,7 @@ public class ChatsService {
 		chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresent(chat -> {
 			throw new ChatException("Chat already exists");
 		});
-		UsersChat chat = chatsRepository.save((UsersChat) factory.createChat(currentUser.getId(), userId));
+		UsersChat chat = chatsRepository.save((UsersChat) factory.getChat(currentUser.getId(), userId));
 		messagingTemplate.convertAndSend("/topic/user/" + userId + "/main",
 				Map.of("created_chat", chat.getId()));
 		return new DataDTO<>(chat.getId());
@@ -81,7 +78,7 @@ public class ChatsService {
 
 	@Transactional
 	public DataDTO<Long> sendTextMessage(long chatId, String text, String token) {
-		ChatMessage message = saveMessage(chatId, text, TEXT, token);
+		ChatMessage message = saveMessage(chatId, text, ContentType.TEXT, token);
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
@@ -90,10 +87,9 @@ public class ChatsService {
 	public DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType) {
 		String fileName = MessagesService.getFileName(contentType);
 		ChatMessage message = saveMessage(chatId, fileName, contentType, token);
-		DataDTO<Long> result = messagesService.saveFile(file, message, contentType,
-				() -> messagesRepository.delete(message));
+		messagesService.saveFile(file, message, contentType, () -> messagesRepository.delete(message));
 		sendMessageOnTopic(message);
-		return result;
+		return new DataDTO<>(message.getId());
 	}
 
 	public ResponseEntity<?> getFile(long id, ContentType contentType) {
@@ -106,10 +102,11 @@ public class ChatsService {
 		User currentUser = getCurrentUser();
 		UsersChat chat = chatsRepository.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
-		if (isBlocked(currentUser.getId(), token)) {
+		long userId = chat.getUser1Id() == currentUser.getId() ? chat.getUser2Id() : chat.getUser1Id();
+		if (isBlocked(userId, token)) {
 			throw new ChatException("User has blocked you");
 		}
-		return messagesRepository.save((ChatMessage) factory.createMessage(text, chat, contentType));
+		return messagesRepository.save((ChatMessage) factory.getMessage(text, chat, contentType));
 	}
 
 	@Transactional
@@ -130,7 +127,7 @@ public class ChatsService {
 		UsersChat chat = chatsRepository.findById(id).orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
 		messagesService.deleteFiles(
-				page -> messagesRepository.findAllByChatAndContentTypeIn(chat, List.of(IMAGE, VIDEO),
+				page -> messagesRepository.findAllByChatAndContentTypeIsNot(chat, ContentType.TEXT,
 						PageRequest.of(page, 50)),
 				() -> chatsRepository.deleteById(id)
 		);

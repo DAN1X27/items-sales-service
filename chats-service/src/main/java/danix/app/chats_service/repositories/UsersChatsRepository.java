@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ChatsRepository extends JpaRepository<UsersChat, Long> {
+public interface UsersChatsRepository extends JpaRepository<UsersChat, Long> {
 
 	List<UsersChat> findAllByUser1IdOrUser2Id(long user1Id, long user2Id);
 

@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -76,11 +77,15 @@ public class AnnouncementsService {
 		User user = getCurrentUser();
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
 		if (filters != null) {
+			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
+					.findAllByCountryAndCityAndTypeIn(user.getCountry(), user.getCity(), pageRequest, filters));
 			return announcementMapper.toResponseDTOList(announcementsRepository
-					.findAllByCountryAndCityAndTypeIn(user.getCountry(), user.getCity(), pageRequest, filters), currency);
+					.findAllByIdIn(ids, pageRequest.getSort()), currency);
 		}
+		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
+				.findAllByCountryAndCity(user.getCountry(), user.getCity(), pageRequest));
 		return announcementMapper.toResponseDTOList(announcementsRepository
-				.findAllByCountryAndCity(user.getCountry(), user.getCity(), pageRequest), currency);
+				.findAllByIdIn(ids, pageRequest.getSort()), currency);
 	}
 
 	public List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, String currency, List<String> filters,
@@ -88,13 +93,16 @@ public class AnnouncementsService {
 		User user = getCurrentUser();
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
 		if (filters != null) {
-			return announcementMapper.toResponseDTOList(announcementsRepository
+			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
 					.findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(title, user.getCountry(), user.getCity(),
-							filters, pageRequest), currency);
+							filters, pageRequest));
+			return announcementMapper.toResponseDTOList(announcementsRepository
+					.findAllByIdIn(ids, pageRequest.getSort()), currency);
 		}
-		return announcementMapper.toResponseDTOList(announcementsRepository
-				.findAllByTitleContainsIgnoreCaseAndCountryAndCity(title, user.getCountry(), user.getCity(),
-						pageRequest), currency);
+		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
+				.findAllByTitleContainsIgnoreCaseAndCountryAndCity(title, user.getCountry(), user.getCity(), pageRequest));
+		return announcementMapper
+				.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, pageRequest.getSort()), currency);
 	}
 
 	private PageRequest getPageRequest(int page, int count, SortDTO sort) {
@@ -108,8 +116,10 @@ public class AnnouncementsService {
 		return PageRequest.of(page, count, Sort.by(direction, property));
 	}
 
-	public List<ResponseAnnouncementDTO> findAllByUser(Long id, String currency) {
-		return announcementMapper.toResponseDTOList(announcementsRepository.findAllByOwnerId(id), currency);
+	public List<ResponseAnnouncementDTO> findAllByUser(Long id, String currency, int page, int count) {
+		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
+				.findAllByOwnerId(id, PageRequest.of(page, count, getIdSort())));
+		return announcementMapper.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, getIdSort()), currency);
 	}
 
 	public Announcement findById(Long id) {
@@ -228,28 +238,18 @@ public class AnnouncementsService {
 		Announcement announcement = findById(id);
 		checkAnnouncementOwner(announcement);
 		deleteImages(announcement);
-		announcementsRepository.delete(announcement);
+		announcementsRepository.deleteById(announcement.getId());
 	}
 
 	@Transactional
 	public void ban(Long id, String cause) {
 		Announcement announcement = findById(id);
-		announcementsRepository.delete(announcement);
 		deleteImages(announcement);
-		String email = (String) usersService.getUserEmail(announcement.getOwnerId(), accessKey).get("data");
-		assert email != null;
+		String email = getUserEmail(announcement.getOwnerId());
 		String message = String.format("Your announcement with title '%s' has been banned due to: %s",
 				announcement.getTitle(), cause);
 		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(email, message));
-	}
-
-	private void deleteImages(Announcement announcement) {
-		if (!announcement.getImages().isEmpty()) {
-			List<String> images = announcement.getImages().stream()
-					.map(Image::getFileName)
-					.toList();
-			listKafkaTemplate.send("deleted_announcements_images", images);
-		}
+		announcementsRepository.deleteById(announcement.getId());
 	}
 
 	@Transactional
@@ -314,20 +314,69 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
+	@Async("virtualExecutor")
 	public void deleteExpiredAnnouncements() {
-		announcementsRepository.deleteAll(announcementsRepository
-				.findAllByCreatedAtBefore(LocalDateTime.now().minusDays(storageDays)));
+		int page = 0;
+		while (true) {
+			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
+					.findAllByCreatedAtBefore(LocalDateTime.now().minusDays(storageDays),
+							PageRequest.of(page, 50)));
+			if (ids.isEmpty()) {
+				break;
+			}
+			List<Announcement> announcements = announcementsRepository.findAllByIdIn(ids, getIdSort());
+			deleteImages(announcements);
+			announcements.forEach(announcement -> {
+				String email = getUserEmail(announcement.getOwnerId());
+				String message = "Your announcement has been removed due to expiration";
+				emailMessageKafkaTemplate.send("message", new EmailMessageDTO(email, message));
+			});
+			announcementsRepository.deleteAllByIdIn(ids);
+			page++;
+		}
 	}
 
 	@Transactional
 	@KafkaListener(topics = "deleted_user", containerFactory = "containerFactory")
 	public void deletedUserListener(Long id) {
-		List<Announcement> announcements = announcementsRepository.findAllByOwnerId(id);
+		int page = 0;
+		 while (true) {
+			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
+					.findAllByOwnerId(id, PageRequest.of(page, 50, getIdSort())));
+			if (ids.isEmpty()) {
+				break;
+			}
+			List<Announcement> announcements = announcementsRepository.findAllByIdIn(ids, getIdSort());
+			deleteImages(announcements);
+			announcementsRepository.deleteAllByIdIn(ids);
+			page++;
+		}
+	}
+
+	private void deleteImages(Announcement announcement) {
+		if (!announcement.getImages().isEmpty()) {
+			List<String> images = announcement.getImages().stream()
+					.map(Image::getFileName)
+					.toList();
+			listKafkaTemplate.send("deleted_announcements_images", images);
+		}
+	}
+
+	private void deleteImages(List<Announcement> announcements) {
 		List<String> images = announcements.stream()
 				.flatMap(announcement -> announcement.getImages().stream().map(Image::getFileName))
 				.toList();
-		listKafkaTemplate.send("deleted_announcements_images", images);
-		announcementsRepository.deleteAll(announcements);
+		if (!images.isEmpty()) {
+			listKafkaTemplate.send("deleted_announcements_images", images);
+		}
+	}
+
+	private String getUserEmail(Long id) {
+		return (String) usersService.getUserEmail(id, accessKey).get("data");
+	}
+
+	private Sort getIdSort() {
+		return Sort.by(Sort.Direction.DESC, "id");
 	}
 
 	private void checkAnnouncementOwner(Announcement announcement) {

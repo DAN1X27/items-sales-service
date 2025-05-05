@@ -3,7 +3,7 @@ package danix.app.chats_service.services;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.dto.ResponseSupportChatDTO;
-import danix.app.chats_service.mapper.ChatMapper;
+import danix.app.chats_service.mapper.SupportChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
@@ -12,6 +12,7 @@ import danix.app.chats_service.security.User;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +27,9 @@ import static danix.app.chats_service.models.SupportChat.Status.CLOSED;
 import static danix.app.chats_service.models.SupportChat.Status.IN_PROCESSING;
 import static danix.app.chats_service.models.SupportChat.Status.WAIT;
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
-import static danix.app.chats_service.util.ContentType.IMAGE;
 import static danix.app.chats_service.util.ContentType.TEXT;
-import static danix.app.chats_service.util.ContentType.VIDEO;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SupportChatsService {
@@ -44,13 +44,13 @@ public class SupportChatsService {
 
 	private final MessageMapper messageMapper;
 
-	private final ChatMapper chatMapper;
+	private final SupportChatMapper supportChatMapper;
 
-	private static final ChatFactory factory = ChatFactory.getFactory(FactoryType.SUPPORT_CHAT_FACTORY);
+	private static final AbstractChatFactory factory = AbstractChatFactory.getFactory(ChatType.SUPPORT_CHAT);
 
 	public List<ResponseSupportChatDTO> findAllByUser() {
 		long id = getCurrentUser().getId();
-		return chatMapper.toResponseSupportChatDTOList(chatsRepository.findAllByUserIdOrAdminId(id, id));
+		return supportChatMapper.toResponseSupportChatDTOList(chatsRepository.findAllByUserIdOrAdminId(id, id));
 	}
 
 	public List<ResponseSupportChatDTO> findAll(int page, int count, String sort) {
@@ -63,7 +63,7 @@ public class SupportChatsService {
 		}
 		List<SupportChat> chats = chatsRepository.findAllByStatus(WAIT, PageRequest.of(page, count,
 				Sort.by(sortDirection, "id")));
-		return chatMapper.toResponseSupportChatDTOList(chats);
+		return supportChatMapper.toResponseSupportChatDTOList(chats);
 	}
 
 	public List<ResponseMessageDTO> getChatMessages(long id, int page, int count) {
@@ -81,8 +81,9 @@ public class SupportChatsService {
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
 		});
-		SupportChat chat = chatsRepository.save((SupportChat) factory.createChat(user.getId(), null));
-		sendTextMessage(message, chat.getId());
+		SupportChat chat = ((SupportChat) factory.getChat(user.getId(), null));
+		chatsRepository.save(chat);
+		messagesRepository.save((SupportChatMessage) factory.getMessage(message, chat, TEXT));
 		return new DataDTO<>(chat.getId());
 	}
 
@@ -112,7 +113,7 @@ public class SupportChatsService {
 	}
 
 	@Transactional
-	public void take(long id) {
+	public void setStatusToProcessing(long id) {
 		SupportChat chat = getById(id);
 		switch (chat.getStatus()) {
 			case CLOSED -> throw new ChatException("Chat is closed");
@@ -133,10 +134,9 @@ public class SupportChatsService {
 	public DataDTO<Long> sendFile(long chatId, MultipartFile file, ContentType contentType) {
 		String fileName = MessagesService.getFileName(contentType);
 		SupportChatMessage message = saveMessage(chatId, fileName, contentType);
-		DataDTO<Long> result = messagesService.saveFile(file, message, contentType,
-				() -> messagesRepository.delete(message));
+		messagesService.saveFile(file, message, contentType, () -> messagesRepository.delete(message));
 		sendMessageOnTopic(message);
-		return result;
+		return new DataDTO<>(message.getId());
 	}
 
 	public ResponseEntity<?> getFile(long id, ContentType contentType) {
@@ -151,7 +151,9 @@ public class SupportChatsService {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
-		return messagesRepository.save((SupportChatMessage) factory.createMessage(text, chat, contentType));
+		SupportChatMessage message = (SupportChatMessage) factory.getMessage(text, chat, contentType);
+		messagesRepository.save(message);
+		return message;
 	}
 
 	@Transactional
@@ -173,8 +175,7 @@ public class SupportChatsService {
 		SupportChat chat = getById(id);
 		checkAccess(chat);
 		messagesService.deleteFiles(
-				page -> messagesRepository.findAllByChatAndContentTypeIn(chat, List.of(IMAGE, VIDEO),
-						PageRequest.of(page, 50)),
+				page -> messagesRepository.findAllByChatAndContentTypeIsNot(chat, TEXT, PageRequest.of(page, 50)),
 				() -> chatsRepository.deleteById(id)
 		);
 		messagingTemplate.convertAndSend("/topic/support/" + chat.getId(),

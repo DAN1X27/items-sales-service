@@ -8,7 +8,7 @@ import org.mapstruct.MappingConstants;
 import java.util.List;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
-public interface ChatMapper {
+public interface SupportChatMapper {
 
     List<ResponseSupportChatDTO> toResponseSupportChatDTOList(List<SupportChat> chats);
 

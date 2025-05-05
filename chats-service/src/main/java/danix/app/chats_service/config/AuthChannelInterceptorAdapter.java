@@ -1,6 +1,6 @@
 package danix.app.chats_service.config;
 
-import danix.app.chats_service.repositories.ChatsRepository;
+import danix.app.chats_service.repositories.UsersChatsRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.security.UserDetailsImpl;
@@ -21,7 +21,7 @@ public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
 
 	private final UserDetailsServiceImpl userDetailsService;
 
-	private final ChatsRepository chatsRepository;
+	private final UsersChatsRepository usersChatsRepository;
 
 	private final SupportChatsRepository supportChatsRepository;
 
@@ -50,7 +50,7 @@ public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
 				assert dest != null;
 				if (dest.startsWith("/topic/chat/")) {
 					long id = Long.parseLong(dest.substring(12));
-					chatsRepository.findById(id).ifPresentOrElse(chat -> {
+					usersChatsRepository.findById(id).ifPresentOrElse(chat -> {
 						if (chat.getUser1Id() != user.getId() && chat.getUser2Id() != user.getId()) {
 							throw new IllegalArgumentException();
 						}

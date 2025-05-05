@@ -1,17 +1,16 @@
 package danix.app.chats_service.models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Entity
 @Table(name = "support_chats")
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class SupportChat implements Chat {
 
 	@Id
@@ -29,11 +28,6 @@ public class SupportChat implements Chat {
 
 	@OneToMany(mappedBy = "chat")
 	private List<SupportChatMessage> messages;
-
-	public SupportChat(long userId, Status status) {
-		this.userId = userId;
-		this.status = status;
-	}
 
 	public enum Status {
 

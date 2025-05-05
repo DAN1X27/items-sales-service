@@ -1,18 +1,19 @@
 package danix.app.chats_service.services;
 
-import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.feign.FilesService;
 import danix.app.chats_service.models.Message;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,7 @@ import java.util.function.Function;
 
 import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessagesService {
@@ -60,7 +62,7 @@ public class MessagesService {
 				.body(data);
 	}
 
-	public DataDTO<Long> saveFile(MultipartFile file, Message message, ContentType contentType, Runnable delete) {
+	public void saveFile(MultipartFile file, Message message, ContentType contentType, Runnable delete) {
 		try {
 			switch (contentType) {
 				case IMAGE -> filesService.saveImage(file, message.getText(), accessKey);
@@ -72,7 +74,6 @@ public class MessagesService {
 			delete.run();
 			throw e;
 		}
-		return new DataDTO<>(message.getId());
 	}
 
 	public void updateMessage(Message message, String text, String topic) {
@@ -102,22 +103,21 @@ public class MessagesService {
 		messagingTemplate.convertAndSend(topic, Map.of("deleted_message", message.getId()));
 	}
 
+	@Async("virtualExecutor")
 	public void deleteFiles(Function<Integer, List<? extends Message>> getFiles, Runnable deleteChat) {
-		Thread.startVirtualThread(() -> {
-			int page = 0;
-			List<String> files;
-			do {
-				files = getFiles.apply(page).stream()
-						.map(Message::getText)
-						.toList();
-				if (!files.isEmpty()) {
-					kafkaTemplate.send("deleted_chat", files);
-					page++;
-				}
+		int page = 0;
+		List<String> files;
+		do {
+			files = getFiles.apply(page).stream()
+					.map(Message::getText)
+					.toList();
+			if (!files.isEmpty()) {
+				kafkaTemplate.send("deleted_chat", files);
+				page++;
 			}
-			while (!files.isEmpty());
-			deleteChat.run();
-		});
+		}
+		while (!files.isEmpty());
+		deleteChat.run();
 	}
 
 	public static String getFileName(ContentType contentType) {

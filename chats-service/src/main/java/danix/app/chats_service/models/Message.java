@@ -16,6 +16,13 @@ public interface Message {
 
 	LocalDateTime getSentTime();
 
+	void setId(long id);
+
 	void setText(String text);
 
+	void setContentType(ContentType contentType);
+
+	void setSenderId(long id);
+
+	void setSentTime(LocalDateTime sentTime);
 }

@@ -13,7 +13,7 @@ import java.util.List;
 @Repository
 public interface SupportChatsMessagesRepository extends JpaRepository<SupportChatMessage, Long> {
 
-	List<SupportChatMessage> findAllByChatAndContentTypeIn(SupportChat chat, List<ContentType> contentType, Pageable pageable);
+	List<SupportChatMessage> findAllByChatAndContentTypeIsNot(SupportChat chat, ContentType contentType, Pageable pageable);
 
 	List<Message> findAllByChat(SupportChat chat, Pageable pageable);
 

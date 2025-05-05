@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 @ExtendWith(MockitoExtension.class)
@@ -337,7 +339,7 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
         announcementsService.delete(announcement.getId());
-        verify(announcementsRepository).delete(announcement);
+        verify(announcementsRepository).deleteById(announcement.getId());
         verify(listKafkaTemplate).send(eq("deleted_announcements_images"), any());
     }
 
@@ -348,7 +350,7 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
         announcementsService.delete(announcement.getId());
-        verify(announcementsRepository).delete(announcement);
+        verify(announcementsRepository).deleteById(announcement.getId());
         verify(listKafkaTemplate, never()).send(eq("deleted_announcements_images"), any());
     }
 
@@ -376,7 +378,7 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(usersService.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
-        verify(announcementsRepository).delete(announcement);
+        verify(announcementsRepository).deleteById(announcement.getId());
         verify(listKafkaTemplate).send(eq("deleted_announcements_images"), any());
         verify(emailMessageKafkaTemplate).send(eq("message"), any());
     }
@@ -388,7 +390,7 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(usersService.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
-        verify(announcementsRepository).delete(announcement);
+        verify(announcementsRepository).deleteById(announcement.getId());
         verify(listKafkaTemplate, never()).send(eq("deleted_announcements_images"), any());
         verify(emailMessageKafkaTemplate).send(eq("message"), any());
     }
@@ -397,15 +399,6 @@ class AnnouncementsServiceTests {
     public void banWhenAnnouncementNotFound() {
         when(announcementsRepository.findById(1L)).thenReturn(Optional.empty());
         assertThrows(AnnouncementException.class, () -> announcementsService.ban(1L, "test_cause"));
-    }
-
-    @Test
-    public void banWhenEmailIsNull() {
-        Announcement announcement = getTestAnnouncement();
-        announcement.setImages(Collections.emptyList());
-        when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
-        when(usersService.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Collections.emptyMap());
-        assertThrows(AssertionError.class, () -> announcementsService.ban(announcement.getId(), "test_cause"));
     }
 
     @Test

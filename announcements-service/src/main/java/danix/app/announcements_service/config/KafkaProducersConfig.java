@@ -18,28 +18,17 @@ import java.util.Map;
 @Configuration
 public class KafkaProducersConfig {
 
-	private final String BOOTSTRAP_ADDRESS;
-
-	public KafkaProducersConfig(@Value("${spring.kafka.consumer.bootstrap-servers}") String bootstrapAddress) {
-		BOOTSTRAP_ADDRESS = bootstrapAddress;
-	}
+	@Value("${spring.kafka.consumer.bootstrap-servers}")
+	private String bootstrapServers;
 
 	@Bean
 	public ProducerFactory<String, List<String>> listProducerFactory() {
-		Map<String, Object> props = new HashMap<>();
-		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_ADDRESS);
-		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-		return new DefaultKafkaProducerFactory<>(props);
+		return new DefaultKafkaProducerFactory<>(getProps());
 	}
 
 	@Bean
 	public ProducerFactory<String, EmailMessageDTO> emailMessageFactory() {
-		Map<String, Object> props = new HashMap<>();
-		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_ADDRESS);
-		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-		return new DefaultKafkaProducerFactory<>(props);
+		return new DefaultKafkaProducerFactory<>(getProps());
 	}
 
 	@Bean
@@ -50,5 +39,13 @@ public class KafkaProducersConfig {
 	@Bean
 	public KafkaTemplate<String, EmailMessageDTO> emailMessageKafkaTemplate() {
 		return new KafkaTemplate<>(emailMessageFactory());
+	}
+
+	Map<String, Object> getProps() {
+		Map<String, Object> props = new HashMap<>();
+		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+		return props;
 	}
 }
