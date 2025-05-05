@@ -1,10 +1,12 @@
 package danix.app.announcements_service.mapper;
 
 import danix.app.announcements_service.dto.CreateAnnouncementDTO;
+import danix.app.announcements_service.dto.DataDTO;
 import danix.app.announcements_service.dto.ResponseAnnouncementDTO;
 import danix.app.announcements_service.dto.ShowAnnouncementDTO;
 import danix.app.announcements_service.models.Announcement;
 import danix.app.announcements_service.models.Image;
+import danix.app.announcements_service.repositories.IdProjection;
 import danix.app.announcements_service.services.AnnouncementsService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -41,10 +43,16 @@ public abstract class AnnouncementMapper {
                 .toList();
     }
 
+    public List<Long> toIdsListFromProjectionsList(List<IdProjection> projections) {
+        return projections.stream()
+                .map(IdProjection::getId)
+                .toList();
+    }
+
     @Named("images")
-    protected List<Long> images(Announcement announcement) {
+    protected List<DataDTO<Long>> images(Announcement announcement) {
         return announcement.getImages().stream()
-                .map(Image::getId)
+                .map(image -> new DataDTO<>(image.getId()))
                 .toList();
     }
 

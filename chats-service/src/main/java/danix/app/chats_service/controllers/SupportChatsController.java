@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static danix.app.chats_service.controllers.ChatsController.handleRequestErrors;
+import static danix.app.chats_service.controllers.UsersChatsController.handleRequestErrors;
 
 @RestController
 @RequestMapping("/chats/support")
@@ -65,10 +65,10 @@ public class SupportChatsController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@PatchMapping("/{id}/take")
+	@PatchMapping("/{id}/status/processing")
 	@PreAuthorize(value = "hasRole('ADMIN')")
 	public ResponseEntity<HttpStatus> setStatusToProcessing(@PathVariable long id) {
-		chatService.take(id);
+		chatService.setStatusToProcessing(id);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 

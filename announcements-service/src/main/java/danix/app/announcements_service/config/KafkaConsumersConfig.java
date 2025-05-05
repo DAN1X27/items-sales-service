@@ -16,21 +16,17 @@ import java.util.Map;
 @Configuration
 public class KafkaConsumersConfig {
 
-	private final String BOOTSTRAP_ADDRESS;
+	@Value("${spring.kafka.consumer.bootstrap-servers}")
+	private String bootstrapServers;
 
-	private final String GROUP_ID;
-
-	public KafkaConsumersConfig(@Value("${spring.kafka.consumer.bootstrap-servers}") String BOOTSTRAP_ADDRESS,
-			@Value("${spring.kafka.consumer.group-id}") String GROUP_ID) {
-		this.BOOTSTRAP_ADDRESS = BOOTSTRAP_ADDRESS;
-		this.GROUP_ID = GROUP_ID;
-	}
+	@Value("${spring.kafka.consumer.group-id}")
+	private String groupId;
 
 	@Bean
 	public ConsumerFactory<String, Long> consumerFactory() {
 		Map<String, Object> props = new HashMap<>();
-		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_ADDRESS);
-		props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
+		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+		props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
 		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, LongDeserializer.class);
 		return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new LongDeserializer());

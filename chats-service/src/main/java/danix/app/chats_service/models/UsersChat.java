@@ -7,9 +7,10 @@ import java.util.List;
 
 @Entity
 @Table(name = "chats")
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class UsersChat implements Chat{
 
 	@Id
@@ -24,10 +25,5 @@ public class UsersChat implements Chat{
 
 	@OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
 	private List<ChatMessage> chatMessages;
-
-	public UsersChat(long user1Id, long user2Id) {
-		this.user1Id = user1Id;
-		this.user2Id = user2Id;
-	}
 
 }

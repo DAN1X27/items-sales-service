@@ -6,6 +6,7 @@ import danix.app.announcements_service.util.AnnouncementException;
 import danix.app.announcements_service.util.ErrorResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/announcements")
 @RequiredArgsConstructor
@@ -26,17 +28,17 @@ public class AnnouncementsController {
 
 	@GetMapping
 	public ResponseEntity<List<ResponseAnnouncementDTO>> findAll(@RequestParam int page, @RequestParam int count,
-																 @RequestParam(defaultValue = "USD") String currency, @RequestParam(required = false) List<String> filters,
-																 @RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
+				@RequestParam(defaultValue = "USD") String currency, @RequestParam(required = false) List<String> filters,
+				@RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO), HttpStatus.OK);
 	}
 
 	@GetMapping("/find")
 	public ResponseEntity<List<ResponseAnnouncementDTO>> findAnnouncements(@RequestParam String title,
-																		   @RequestParam(defaultValue = "USD") String currency, @RequestParam int page, @RequestParam int count,
-																		   @RequestParam(required = false) List<String> filters, @RequestBody(required = false) @Valid SortDTO sortDTO,
-																		   BindingResult bindingResult) {
+				@RequestParam(defaultValue = "USD") String currency, @RequestParam int page, @RequestParam int count,
+				@RequestParam(required = false) List<String> filters, @RequestBody(required = false) @Valid SortDTO sortDTO,
+				BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO),
 				HttpStatus.OK);
@@ -44,8 +46,8 @@ public class AnnouncementsController {
 
 	@GetMapping("/user/{id}")
 	public ResponseEntity<List<ResponseAnnouncementDTO>> getAllByUser(@PathVariable Long id,
-																	  @RequestParam(defaultValue = "USD") String currency) {
-		return new ResponseEntity<>(announcementsService.findAllByUser(id, currency), HttpStatus.OK);
+				@RequestParam(defaultValue = "USD") String currency, @RequestParam int page, @RequestParam int count) {
+		return new ResponseEntity<>(announcementsService.findAllByUser(id, currency, page, count), HttpStatus.OK);
 	}
 
 	@GetMapping("/{id}")
@@ -55,7 +57,7 @@ public class AnnouncementsController {
 
 	@PostMapping
 	public ResponseEntity<DataDTO<Long>> create(@RequestParam(defaultValue = "USD") String currency,
-												@RequestBody @Valid CreateAnnouncementDTO createDTO, BindingResult bindingResult) {
+				@RequestBody @Valid CreateAnnouncementDTO createDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		return new ResponseEntity<>(announcementsService.save(createDTO, currency), HttpStatus.CREATED);
 	}
@@ -92,7 +94,7 @@ public class AnnouncementsController {
 
 	@PostMapping("/{id}/report")
 	public ResponseEntity<HttpStatus> report(@PathVariable Long id,
-					@RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
+				@RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
 		announcementsService.report(id, causeDTO.getCause());
 		return new ResponseEntity<>(HttpStatus.CREATED);

@@ -45,6 +45,6 @@ public class ShowAnnouncementDTO {
 	private LocalDateTime expiredDate;
 
 	@JsonProperty("images_ids")
-	private List<Long> imagesIds;
+	private List<DataDTO<Long>> imagesIds;
 
 }

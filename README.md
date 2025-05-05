@@ -319,7 +319,7 @@ Close support chat.
 ```
 Set support chat status to wait.
 ```
-### PATCH: /chats/support/{id}/take
+### PATCH: /chats/support/{id}/status/processing
 ```
 Set support chat status to processing.
 ADMIN role is required. 
@@ -399,9 +399,9 @@ Available directions: ASC, DESC.
 ```
 Same as previous request, but announcements looking for title.
 ```
-### GET: /announcements/user/{id}
+### GET: /announcements/user/{id}?page={page}&count={count}
 ```
-Returns all announcements by user id.
+Returns all announcements by user id, page and count.
 PARAMS: 
 currency - The currency in which you want to view the announcements (Not required, default value - USD), available currencies: USD, BYN, RUB, EUR.
 ```
