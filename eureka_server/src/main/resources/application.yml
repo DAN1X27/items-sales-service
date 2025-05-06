@@ -2,5 +2,10 @@ eureka:
   client:
     registerWithEureka: false
     fetchRegistry: false
+spring:
+  security:
+    user:
+      name: ${username}
+      password: ${password}
 server:
   port: 8761
