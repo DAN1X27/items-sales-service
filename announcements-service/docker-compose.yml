@@ -6,8 +6,6 @@ services:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - SPRING_CLOUD_CONFIG_USERNAME=username
       - SPRING_CLOUD_CONFIG_PASSWORD=password
-    ports:
-      - "3030:3030"
     networks:
       - items-sales-service-net
 networks:
