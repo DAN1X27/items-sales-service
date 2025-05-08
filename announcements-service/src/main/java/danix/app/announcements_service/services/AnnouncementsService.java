@@ -73,7 +73,7 @@ public class AnnouncementsService {
 	@Value("${access_key}")
 	private String accessKey;
 
-	public List<ResponseAnnouncementDTO> findAll(int page, int count, String currency, List<String> filters, SortDTO sortDTO) {
+	public List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters, SortDTO sortDTO) {
 		User user = getCurrentUser();
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
 		if (filters != null) {
@@ -88,7 +88,7 @@ public class AnnouncementsService {
 				.findAllByIdIn(ids, pageRequest.getSort()), currency);
 	}
 
-	public List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, String currency, List<String> filters,
+	public List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, CurrencyCode currency, List<String> filters,
 			SortDTO sortDTO) {
 		User user = getCurrentUser();
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
@@ -116,7 +116,7 @@ public class AnnouncementsService {
 		return PageRequest.of(page, count, Sort.by(direction, property));
 	}
 
-	public List<ResponseAnnouncementDTO> findAllByUser(Long id, String currency, int page, int count) {
+	public List<ResponseAnnouncementDTO> findAllByUser(Long id, CurrencyCode currency, int page, int count) {
 		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
 				.findAllByOwnerId(id, PageRequest.of(page, count, getIdSort())));
 		return announcementMapper.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, getIdSort()), currency);
@@ -128,7 +128,7 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public DataDTO<Long> save(CreateAnnouncementDTO createDTO, String currency) {
+	public DataDTO<Long> save(CreateAnnouncementDTO createDTO, CurrencyCode currency) {
 		Announcement announcement = announcementMapper.fromCreateDTO(createDTO);
 		announcement.setCreatedAt(LocalDateTime.now());
 		announcement.setOwnerId(getCurrentUser().getId());
@@ -187,7 +187,7 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public ShowAnnouncementDTO show(Long id, String currency) {
+	public ShowAnnouncementDTO show(Long id, CurrencyCode currency) {
 		Announcement announcement = findById(id);
 		Long userId = getCurrentUser().getId();
 		watchesRepository.findByAnnouncementAndUserId(announcement, userId).orElseGet(() -> {
@@ -226,7 +226,7 @@ public class AnnouncementsService {
 				.findAll(PageRequest.of(page, count, Sort.by(direction, "id"))).getContent());
 	}
 
-	public ShowReportDTO getReport(long id, String currency) {
+	public ShowReportDTO getReport(long id, CurrencyCode currency) {
 		Report report = reportsRepository.findById(id).orElseThrow(() -> new AnnouncementException("Report not found"));
 		ShowReportDTO showDTO = reportMapper.toShowDTO(report);
 		showDTO.setAnnouncement(announcementMapper.toResponseDTO(report.getAnnouncement(), currency));
@@ -253,7 +253,7 @@ public class AnnouncementsService {
 	}
 
 	@Transactional
-	public void update(Long id, UpdateDTO updateDTO) {
+	public void update(Long id, UpdateAnnouncementDTO updateDTO) {
 		Announcement announcement = findById(id);
 		checkAnnouncementOwner(announcement);
 		if (updateDTO.getTitle() != null) {
@@ -285,14 +285,7 @@ public class AnnouncementsService {
 		}
 	}
 
-	public double convertPrice(String currency, Function<Double, Double> operation) {
-		CurrencyCode currencyCode;
-		try {
-			currencyCode = CurrencyCode.valueOf(currency.toUpperCase());
-		}
-		catch (IllegalArgumentException e) {
-			throw new AnnouncementException("Invalid currency");
-		}
+	public double convertPrice(CurrencyCode currencyCode, Function<Double, Double> operation) {
 		if (CurrencyCode.USD != currencyCode) {
 			Map<String, Object> response = null;
 			try {
