@@ -1,13 +1,14 @@
 package danix.app.announcements_service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import danix.app.announcements_service.util.CurrencyCode;
 import danix.app.announcements_service.util.NullOrNotBlank;
 import lombok.*;
 
 @Data
 @Builder
 @AllArgsConstructor
-public class UpdateDTO {
+public class UpdateAnnouncementDTO {
 
 	@NullOrNotBlank(message = "Title must not be empty")
 	private String title;
@@ -17,8 +18,7 @@ public class UpdateDTO {
 
 	private Double price;
 
-	@NullOrNotBlank(message = "Currency must not be empty")
-	private String currency;
+	private CurrencyCode currency;
 
 	@NullOrNotBlank(message = "Phone number must not be empty")
 	@JsonProperty("phone_number")

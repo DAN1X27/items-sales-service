@@ -18,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
@@ -27,12 +26,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import static danix.app.announcements_service.util.CurrencyCode.USD;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,17 +97,8 @@ class AnnouncementsServiceTests {
         Announcement announcement = getTestAnnouncement();
         when(announcementMapper.fromCreateDTO(createDTO)).thenReturn(announcement);
         mockCurrentUser();
-        announcementsService.save(createDTO, "USD");
+        announcementsService.save(createDTO, USD);
         verify(announcementsRepository).save(announcement);
-    }
-
-    @Test
-    public void saveWhenCurrencyIsInvalid() {
-        CreateAnnouncementDTO createDTO = new CreateAnnouncementDTO();
-        Announcement announcement = getTestAnnouncement();
-        when(announcementMapper.fromCreateDTO(createDTO)).thenReturn(announcement);
-        mockCurrentUser();
-        assertThrows(AnnouncementException.class, () -> announcementsService.save(createDTO, "INVALID"));
     }
 
     @Test
@@ -245,10 +235,10 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(watchesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
-        when(announcementMapper.toShowDTO(announcement, "USD")).thenReturn(new ShowAnnouncementDTO());
+        when(announcementMapper.toShowDTO(announcement, USD)).thenReturn(new ShowAnnouncementDTO());
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
         ReflectionTestUtils.setField(announcementsService, "storageDays", 30);
-        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), "USD");
+        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), USD);
         verify(watchesRepository).save(any(Watch.class));
         assertEquals(1, announcement.getWatchesCount());
         assertEquals(announcement.getCreatedAt().plusDays(30), showDTO.getExpiredDate());
@@ -261,16 +251,16 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(watchesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Watch()));
-        when(announcementMapper.toShowDTO(announcement, "USD")).thenReturn(new ShowAnnouncementDTO());
+        when(announcementMapper.toShowDTO(announcement, USD)).thenReturn(new ShowAnnouncementDTO());
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Like()));
-        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), "USD");
+        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), USD);
         assertTrue(showDTO.isLiked());
     }
 
     @Test
     public void showWhenAnnouncementNotFound() {
         when(announcementsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.show(1L, "USD"));
+        assertThrows(AnnouncementException.class, () -> announcementsService.show(1L, USD));
     }
 
     @Test
@@ -319,15 +309,15 @@ class AnnouncementsServiceTests {
         when(reportsRepository.findById(report.getId())).thenReturn(Optional.of(report));
         when(reportMapper.toShowDTO(report)).thenReturn(new ShowReportDTO());
         ResponseAnnouncementDTO announcementDTO = new ResponseAnnouncementDTO();
-        when(announcementMapper.toResponseDTO(announcement, "USD")).thenReturn(announcementDTO);
-        ShowReportDTO showDTO = announcementsService.getReport(report.getId(), "USD");
+        when(announcementMapper.toResponseDTO(announcement, USD)).thenReturn(announcementDTO);
+        ShowReportDTO showDTO = announcementsService.getReport(report.getId(), USD);
         assertEquals(announcementDTO, showDTO.getAnnouncement());
     }
 
     @Test
     public void getReportWhenReportNotFound() {
         when(reportsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.getReport(1L, "USD"));
+        assertThrows(AnnouncementException.class, () -> announcementsService.getReport(1L, USD));
     }
 
     @Test
@@ -404,7 +394,7 @@ class AnnouncementsServiceTests {
     @Test
     public void updateWhenAllParamsExists() {
         Announcement announcement = getTestAnnouncement();
-        UpdateDTO updateDTO = UpdateDTO.builder()
+        UpdateAnnouncementDTO updateDTO = UpdateAnnouncementDTO.builder()
                 .title("new title")
                 .description("new description")
                 .price(announcement.getPrice() * 2)
@@ -412,7 +402,7 @@ class AnnouncementsServiceTests {
                 .country("new country")
                 .phoneNumber("new phone number")
                 .type("new type")
-                .currency("USD")
+                .currency(USD)
                 .build();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
@@ -428,7 +418,7 @@ class AnnouncementsServiceTests {
     @Test
     public void updateWhenOnlyTitleExists() {
         Announcement announcement = getTestAnnouncement();
-        UpdateDTO updateDTO = UpdateDTO.builder().title("new title").build();
+        UpdateAnnouncementDTO updateDTO = UpdateAnnouncementDTO.builder().title("new title").build();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
         announcementsService.update(announcement.getId(), updateDTO);
@@ -443,7 +433,7 @@ class AnnouncementsServiceTests {
     @Test
     public void updateWhenAnnouncementNotFound() {
         when(announcementsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.update(1L, UpdateDTO.builder().build()));
+        assertThrows(AnnouncementException.class, () -> announcementsService.update(1L, UpdateAnnouncementDTO.builder().build()));
     }
 
     @Test
@@ -452,7 +442,7 @@ class AnnouncementsServiceTests {
         announcement.setOwnerId(2L);
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
-        assertThrows(AnnouncementException.class, () -> announcementsService.update(announcement.getId(), UpdateDTO.builder().build()));
+        assertThrows(AnnouncementException.class, () -> announcementsService.update(announcement.getId(), UpdateAnnouncementDTO.builder().build()));
     }
 
     private Announcement getTestAnnouncement() {

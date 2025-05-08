@@ -1,12 +1,41 @@
 package danix.app.email_sender_service.services;
 
-public interface EmailSenderService {
+import jakarta.mail.Message;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
 
-    void sendMessage(String to, String message);
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class EmailSenderService {
 
-    default String getHtmlContent(String message) {
-        return String.format(
-            """
+	private final JavaMailSender javaMailSender;
+
+	@Value("${spring.mail.username}")
+	private String senderEmail;
+
+	public void sendMessage(String to, String message) {
+		try {
+			MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+			mimeMessage.setFrom(senderEmail);
+			mimeMessage.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+			mimeMessage.setSubject("Items sales service");
+			mimeMessage.setContent(getHtmlContent(message), "text/html;charset=UTF-8");
+			javaMailSender.send(mimeMessage);
+		}
+		catch (Exception e) {
+			log.error("Error send message to email - {}, error - {}", to, e.getMessage(), e);
+		}
+	}
+
+	private String getHtmlContent(String message) {
+		return String.format(
+			"""
             <html>
                 <head>
                     <style>
@@ -45,7 +74,7 @@ public interface EmailSenderService {
                 </body>
             </html>
             """, message
-        );
-    }
+		);
+	}
 
 }
