@@ -23,10 +23,6 @@ Login user and returns jwt-token.
   "email": "email",
   "password": "password"
 }
-
-"response": {
-  "jwt-token": "authentication token"
-}
 ```
 ### POST: /auth/registration
 ```
@@ -51,10 +47,6 @@ Validate registraton code and register user.
 "request": {
   "email": "email",
   "key": 123456
-}
-
-"response": {
-  "jwt-token": "authentication token"
 }
 ```
 ### POST: /auth/password/reset/key
@@ -376,11 +368,13 @@ Delete message by id.
 ## 5. ANNOUNCEMENTS
 ### GET: /announcements?page={page}&count={count}
 ```
-Returns all announcements by page and count.
+Returns all announcements by page and count. The user may not be authorized.
 PARAMS (not required): 
 1. currency - The currency in which you want to view the announcements (Default value - USD), available currencies: USD, BYN, RUB, EUR.
 2. filters - Types of items according to which the response will be filtered.
-BODY:
+3. city - city by which to sort (Required if user is not authorized).
+4. country - country by which to sort (Required if user is not authorized).
+BODY (not required):
 1. type - Sort type.
 Available sort types: LIKES, PRICE, ID, WATCHES.
 2. direction - Sort direction.
@@ -397,7 +391,27 @@ Available directions: ASC, DESC.
 ```
 ### GET: /announcements/find?title={title}&page={page}&count={count}
 ```
-Same as previous request, but announcements looking for title.
+Returns all announcements by page, count and title. The user may not be authorized.
+PARAMS (not required): 
+1. currency - The currency in which you want to view the announcements (Default value - USD), available currencies: USD, BYN, RUB, EUR.
+2. filters - Types of items according to which the response will be filtered.
+3. city - City by which to sort (Required if user is not authorized).
+4. country - Country by which to sort (Required if user is not authorized).
+5. title - Title for search.
+BODY (not required):
+1. type - Sort type.
+Available sort types: LIKES, PRICE, ID, WATCHES.
+2. direction - Sort direction.
+Available directions: ASC, DESC.
+```
+#### REQUEST EXAMPLE:
+##### URL: http://localhost:8080/announcemets/find?title={title}&page=0&count=10&currency=BYN&filters=PHONES,PODS
+##### BODY (not required):
+```json
+{
+  "type": "LIKES",
+  "direction": "DESC"
+}
 ```
 ### GET: /announcements/user/{id}?page={page}&count={count}
 ```
@@ -407,7 +421,7 @@ currency - The currency in which you want to view the announcements (Not require
 ```
 ### GET: /announcements/{id}
 ```
-Returns announcement by id.
+Returns announcement by id. The user may not be authorized.
 PARAMS: 
 currency - The currency in which you want to view the announcements (Not required, default value - USD), available currencies: USD, BYN, RUB, EUR.
 ```
