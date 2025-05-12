@@ -8,10 +8,8 @@ import danix.app.announcements_service.mapper.AnnouncementMapper;
 import danix.app.announcements_service.mapper.ReportMapper;
 import danix.app.announcements_service.models.*;
 import danix.app.announcements_service.repositories.*;
-import danix.app.announcements_service.security.UserDetailsImpl;
 import danix.app.announcements_service.util.AnnouncementException;
 import danix.app.announcements_service.util.CurrencyCode;
-import danix.app.announcements_service.security.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +18,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +27,9 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
+
+import static danix.app.announcements_service.security.UserDetailsServiceImpl.getCurrentUser;
+import static danix.app.announcements_service.security.UserDetailsServiceImpl.isAuthenticated;
 
 @Service
 @RequiredArgsConstructor
@@ -73,34 +72,32 @@ public class AnnouncementsService {
 	@Value("${access_key}")
 	private String accessKey;
 
-	public List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters, SortDTO sortDTO) {
-		User user = getCurrentUser();
+	public List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters,
+												 SortDTO sortDTO, String country, String city) {
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
 		if (filters != null) {
 			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
-					.findAllByCountryAndCityAndTypeIn(user.getCountry(), user.getCity(), pageRequest, filters));
+					.findAllByCountryAndCityAndTypeIn(country, city, pageRequest, filters));
 			return announcementMapper.toResponseDTOList(announcementsRepository
 					.findAllByIdIn(ids, pageRequest.getSort()), currency);
 		}
 		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
-				.findAllByCountryAndCity(user.getCountry(), user.getCity(), pageRequest));
+				.findAllByCountryAndCity(country, city, pageRequest));
 		return announcementMapper.toResponseDTOList(announcementsRepository
 				.findAllByIdIn(ids, pageRequest.getSort()), currency);
 	}
 
 	public List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, CurrencyCode currency, List<String> filters,
-			SortDTO sortDTO) {
-		User user = getCurrentUser();
+													SortDTO sortDTO, String country, String city) {
 		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
 		if (filters != null) {
 			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
-					.findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(title, user.getCountry(), user.getCity(),
-							filters, pageRequest));
+					.findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(title, country, city, filters, pageRequest));
 			return announcementMapper.toResponseDTOList(announcementsRepository
 					.findAllByIdIn(ids, pageRequest.getSort()), currency);
 		}
 		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
-				.findAllByTitleContainsIgnoreCaseAndCountryAndCity(title, user.getCountry(), user.getCity(), pageRequest));
+				.findAllByTitleContainsIgnoreCaseAndCountryAndCity(title, country, city, pageRequest));
 		return announcementMapper
 				.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, pageRequest.getSort()), currency);
 	}
@@ -189,14 +186,16 @@ public class AnnouncementsService {
 	@Transactional
 	public ShowAnnouncementDTO show(Long id, CurrencyCode currency) {
 		Announcement announcement = findById(id);
-		Long userId = getCurrentUser().getId();
-		watchesRepository.findByAnnouncementAndUserId(announcement, userId).orElseGet(() -> {
-			announcement.setWatchesCount(announcement.getWatchesCount() + 1);
-			return watchesRepository.save(new Watch(announcement, userId));
-		});
 		ShowAnnouncementDTO showDTO = announcementMapper.toShowDTO(announcement, currency);
 		showDTO.setExpiredDate(announcement.getCreatedAt().plusDays(storageDays));
-		showDTO.setLiked(likesRepository.findByAnnouncementAndUserId(announcement, userId).isPresent());
+		if (isAuthenticated()) {
+			Long userId = getCurrentUser().getId();
+			watchesRepository.findByAnnouncementAndUserId(announcement, userId).orElseGet(() -> {
+				announcement.setWatchesCount(announcement.getWatchesCount() + 1);
+				return watchesRepository.save(new Watch(announcement, userId));
+			});
+			showDTO.setLiked(likesRepository.findByAnnouncementAndUserId(announcement, userId).isPresent());
+		}
 		return showDTO;
 	}
 
@@ -376,12 +375,6 @@ public class AnnouncementsService {
 		if (!announcement.getOwnerId().equals(getCurrentUser().getId())) {
 			throw new AnnouncementException("You are not owner of this announcement");
 		}
-	}
-
-	private User getCurrentUser() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-		return userDetails.authentication();
 	}
 
 }
