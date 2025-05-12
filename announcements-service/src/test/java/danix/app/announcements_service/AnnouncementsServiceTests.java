@@ -12,6 +12,7 @@ import danix.app.announcements_service.security.User;
 import danix.app.announcements_service.security.UserDetailsImpl;
 import danix.app.announcements_service.services.AnnouncementsService;
 import danix.app.announcements_service.util.AnnouncementException;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,6 +36,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.IntStream;
 
+@Slf4j
 @ExtendWith(MockitoExtension.class)
 class AnnouncementsServiceTests {
 
@@ -78,6 +81,9 @@ class AnnouncementsServiceTests {
 
     @Mock
     private Authentication authentication;
+
+    @Mock
+    private AnonymousAuthenticationToken anonymousToken;
 
     @InjectMocks
     private AnnouncementsService announcementsService;
@@ -255,6 +261,19 @@ class AnnouncementsServiceTests {
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Like()));
         ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), USD);
         assertTrue(showDTO.isLiked());
+    }
+
+    @Test
+    public void showWhenUserDoesNotAuthenticated() {
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(anonymousToken);
+        Announcement announcement = getTestAnnouncement();
+        when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
+        when(announcementMapper.toShowDTO(announcement, USD)).thenReturn(new ShowAnnouncementDTO());
+        ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), USD);
+        verify(watchesRepository, never()).findByAnnouncementAndUserId(any(), any());
+        verify(likesRepository, never()).findByAnnouncementAndUserId(any(), any());
+        assertFalse(showDTO.isLiked());
     }
 
     @Test

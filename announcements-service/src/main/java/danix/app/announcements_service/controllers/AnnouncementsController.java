@@ -1,6 +1,7 @@
 package danix.app.announcements_service.controllers;
 
 import danix.app.announcements_service.dto.*;
+import danix.app.announcements_service.security.User;
 import danix.app.announcements_service.services.AnnouncementsService;
 import danix.app.announcements_service.util.AnnouncementException;
 import danix.app.announcements_service.util.CurrencyCode;
@@ -19,6 +20,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static danix.app.announcements_service.security.UserDetailsServiceImpl.getCurrentUser;
+import static danix.app.announcements_service.security.UserDetailsServiceImpl.isAuthenticated;
+
 @Slf4j
 @RestController
 @RequestMapping("/announcements")
@@ -29,30 +33,48 @@ public class AnnouncementsController {
 
     @GetMapping
     public ResponseEntity<List<ResponseAnnouncementDTO>> findAll(@RequestParam int page, @RequestParam int count,
-                                                                 @RequestParam(defaultValue = "USD") CurrencyCode currency,
-                                                                 @RequestParam(required = false) List<String> filters,
-                                                                 @RequestBody(required = false) @Valid SortDTO sortDTO,
-                                                                 BindingResult bindingResult) {
+               @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam(required = false) String city,
+               @RequestParam(required = false) String country, @RequestParam(required = false) List<String> filters,
+               @RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
-        return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO), HttpStatus.OK);
+        if (isAuthenticated()) {
+            User user = getCurrentUser();
+            return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO,
+                    user.getCountry(), user.getCity()), HttpStatus.OK);
+        } else if (city == null) {
+            throw new AnnouncementException("City is required");
+        } else if (country == null) {
+            throw new AnnouncementException("Country is required");
+        } else {
+            return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO,
+                    country, city), HttpStatus.OK);
+        }
     }
 
     @GetMapping("/find")
-    public ResponseEntity<List<ResponseAnnouncementDTO>> findAnnouncements(@RequestParam String title,
-                                                                           @RequestParam(defaultValue = "USD") CurrencyCode currency,
-                                                                           @RequestParam int page, @RequestParam int count,
-                                                                           @RequestParam(required = false) List<String> filters,
-                                                                           @RequestBody(required = false) @Valid SortDTO sortDTO,
-                                                                           BindingResult bindingResult) {
+    public ResponseEntity<List<ResponseAnnouncementDTO>> findByTitle(@RequestParam String title,
+                @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam int page, @RequestParam int count,
+                @RequestParam(required = false) String city, @RequestParam(required = false) String country,
+                @RequestParam(required = false) List<String> filters, @RequestBody(required = false) @Valid SortDTO sortDTO,
+                BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
-        return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO),
-                HttpStatus.OK);
+        if (isAuthenticated()) {
+            User user = getCurrentUser();
+            return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO,
+                    user.getCountry(), user.getCity()), HttpStatus.OK);
+        } else if (city == null) {
+            throw new AnnouncementException("City is required");
+        } else if (country == null) {
+            throw new AnnouncementException("Country is required");
+        } else {
+            return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO,
+                    country, city), HttpStatus.OK);
+        }
     }
 
     @GetMapping("/user/{id}")
     public ResponseEntity<List<ResponseAnnouncementDTO>> getAllByUser(@PathVariable Long id,
-                                                                      @RequestParam(defaultValue = "USD") CurrencyCode currency,
-                                                                      @RequestParam int page, @RequestParam int count) {
+               @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam int page, @RequestParam int count) {
         return new ResponseEntity<>(announcementsService.findAllByUser(id, currency, page, count), HttpStatus.OK);
     }
 
@@ -63,7 +85,7 @@ public class AnnouncementsController {
 
     @PostMapping
     public ResponseEntity<DataDTO<Long>> create(@RequestParam(defaultValue = "USD") CurrencyCode currency,
-                                                @RequestBody @Valid CreateAnnouncementDTO createDTO, BindingResult bindingResult) {
+                @RequestBody @Valid CreateAnnouncementDTO createDTO, BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
         return new ResponseEntity<>(announcementsService.save(createDTO, currency), HttpStatus.CREATED);
     }
@@ -82,13 +104,13 @@ public class AnnouncementsController {
 
     @GetMapping("/reports")
     public ResponseEntity<List<ResponseReportDTO>> getReports(@RequestParam int page, @RequestParam int count,
-                                                              @RequestParam(value = "sort", defaultValue = "DESC") Sort.Direction sort) {
+                @RequestParam(value = "sort", defaultValue = "DESC") Sort.Direction sort) {
         return new ResponseEntity<>(announcementsService.getReports(page, count, sort), HttpStatus.OK);
     }
 
     @GetMapping("/report/{id}")
     public ResponseEntity<ShowReportDTO> getReport(@PathVariable long id,
-                                                   @RequestParam(defaultValue = "USD") CurrencyCode currency) {
+                @RequestParam(defaultValue = "USD") CurrencyCode currency) {
         return new ResponseEntity<>(announcementsService.getReport(id, currency), HttpStatus.OK);
     }
 
@@ -100,7 +122,7 @@ public class AnnouncementsController {
 
     @PostMapping("/{id}/report")
     public ResponseEntity<HttpStatus> report(@PathVariable Long id,
-                                             @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
+                @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
         announcementsService.report(id, causeDTO.getCause());
         return new ResponseEntity<>(HttpStatus.CREATED);
@@ -108,7 +130,7 @@ public class AnnouncementsController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<HttpStatus> update(@PathVariable Long id, @RequestBody @Valid UpdateAnnouncementDTO updateDTO,
-                                             BindingResult bindingResult) {
+                BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
         announcementsService.update(id, updateDTO);
         return new ResponseEntity<>(HttpStatus.OK);
@@ -142,7 +164,7 @@ public class AnnouncementsController {
 
     @DeleteMapping("/{id}/ban")
     public ResponseEntity<HttpStatus> ban(@PathVariable Long id,
-                                          @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
+                @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
         announcementsService.ban(id, causeDTO.getCause());
         return new ResponseEntity<>(HttpStatus.OK);

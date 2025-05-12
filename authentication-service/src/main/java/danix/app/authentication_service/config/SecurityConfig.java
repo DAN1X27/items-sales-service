@@ -49,7 +49,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
+	public AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
 		return (authentication, object) -> {
 			String accessKey = object.getRequest().getParameter("access_key");
 			if (accessKey == null || !accessKey.equals(this.accessKey)) {
