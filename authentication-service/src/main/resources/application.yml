@@ -1,3 +1,5 @@
+server:
+  port: 7070
 spring:
   flyway:
     locations: classpath:db_migration
@@ -8,10 +10,6 @@ spring:
     username: ${db.username}
     password: ${db.password}
     url: ${db.url}
-  jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
@@ -26,8 +24,6 @@ spring:
     openfeign:
       okhttp:
         enabled: true
-server:
-  port: 7070
 redis:
   host: ${redis.host}
   port: ${redis.port}
@@ -35,6 +31,8 @@ redis:
   username: ${redis.username}
   database: ${redis.database}
 email-keys-storage-time-minutes: ${email-keys-storage-time-minutes}
+max-email-key-attempts: ${max-email-key-attempts}
+tokens-storage-days: ${tokens-storage-days}
 eureka:
   instance:
     instanceId: ${spring.application.name}
@@ -46,9 +44,9 @@ eureka:
     service-url:
       defaultZone: ${eureka.server.url}
 jwt_secret: ${jwt_secret}
+access_key: ${access_key}
 management:
   endpoints:
     web:
       exposure:
         include: refresh
-access_key: ${access_key}

@@ -31,9 +31,6 @@ public class User {
 	@Enumerated(EnumType.STRING)
 	private Role role;
 
-	@Enumerated(EnumType.STRING)
-	private Status status;
-
 	private String avatar;
 
 	private String country;
@@ -56,14 +53,6 @@ public class User {
 
 	@OneToMany(mappedBy = "owner")
 	private List<BlockedUser> blockedUsers;
-
-	public enum Status {
-
-		REGISTERED,
-
-		TEMPORALLY_REGISTERED
-
-	}
 
 	public enum Role {
 

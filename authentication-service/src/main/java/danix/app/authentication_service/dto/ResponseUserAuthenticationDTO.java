@@ -1,12 +1,8 @@
 package danix.app.authentication_service.dto;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter
-@Setter
-@Builder
+@Data
 public class ResponseUserAuthenticationDTO {
 
 	private Long id;

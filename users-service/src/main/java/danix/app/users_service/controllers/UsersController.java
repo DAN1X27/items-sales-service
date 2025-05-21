@@ -217,8 +217,8 @@ public class UsersController {
 	}
 
 	@DeleteMapping("/temp")
-	public ResponseEntity<HttpStatus> deleteTempUsers() {
-		usersService.deleteTempUsers();
+	public ResponseEntity<HttpStatus> deleteTempUser(@RequestParam String email) {
+		usersService.deleteTempUser(email);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 

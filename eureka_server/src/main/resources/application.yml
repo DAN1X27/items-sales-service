@@ -1,11 +1,22 @@
+spring:
+  application:
+    name: 'eureka-server'
+  config:
+    import: 'configserver:'
+  cloud:
+    config:
+      uri: ${config_uri}
+      username: ${config_username}
+      password: ${config_password}
+  security:
+    user:
+      name: ${security.username}
+      password: ${security.password}
 eureka:
   client:
     registerWithEureka: false
     fetchRegistry: false
-spring:
-  security:
-    user:
-      name: ${username}
-      password: ${password}
+    service-url:
+      defaultZone: ${url}
 server:
   port: 8761

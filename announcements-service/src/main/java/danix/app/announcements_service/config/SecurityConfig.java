@@ -48,8 +48,7 @@ public class SecurityConfig {
                 .build();
     }
 
-    @Bean
-    public AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
+    private AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
         return (authentication, object) -> {
             String accessKey = object.getRequest().getParameter("access_key");
             if (accessKey == null || !accessKey.equals(this.accessKey)) {

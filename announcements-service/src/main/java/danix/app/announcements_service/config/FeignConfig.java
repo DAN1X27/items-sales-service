@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import danix.app.announcements_service.util.AnnouncementException;
 import feign.codec.ErrorDecoder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

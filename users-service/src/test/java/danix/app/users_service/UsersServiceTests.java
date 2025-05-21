@@ -9,18 +9,8 @@ import danix.app.users_service.feign.FilesService;
 import danix.app.users_service.mapper.CommentMapper;
 import danix.app.users_service.mapper.ReportMapper;
 import danix.app.users_service.mapper.UserMapper;
-import danix.app.users_service.models.BannedUser;
-import danix.app.users_service.models.BlockedUser;
-import danix.app.users_service.models.Comment;
-import danix.app.users_service.models.Grade;
-import danix.app.users_service.models.Report;
-import danix.app.users_service.models.User;
-import danix.app.users_service.repositories.BannedUsersRepository;
-import danix.app.users_service.repositories.BlockedUsersRepository;
-import danix.app.users_service.repositories.CommentsRepository;
-import danix.app.users_service.repositories.GradesRepository;
-import danix.app.users_service.repositories.ReportsRepository;
-import danix.app.users_service.repositories.UsersRepository;
+import danix.app.users_service.models.*;
+import danix.app.users_service.repositories.*;
 import danix.app.users_service.security.UserDetailsImpl;
 import danix.app.users_service.services.UsersService;
 import danix.app.users_service.util.UserException;
@@ -61,6 +51,9 @@ class UsersServiceTests {
 
     @Mock
     private UsersRepository usersRepository;
+
+    @Mock
+    private TempUsersRepository tempUsersRepository;
 
     @Mock
     private FilesService filesService;
@@ -189,11 +182,13 @@ class UsersServiceTests {
 
     @Test
     public void registrationConfirm() {
-        User testUser = getTestUser();
-        testUser.setStatus(User.Status.TEMPORALLY_REGISTERED);
-        when(usersRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
-        usersService.registrationConfirm(testUser.getEmail());
-        assertEquals(User.Status.REGISTERED, testUser.getStatus());
+        User user = getTestUser();
+        TempUser tempUser = TempUser.builder().email(user.getEmail()).build();
+        when(tempUsersRepository.findById(tempUser.getEmail())).thenReturn(Optional.of(tempUser));
+        when(userMapper.fromTempUser(tempUser)).thenReturn(user);
+        usersService.registrationConfirm(tempUser.getEmail());
+        verify(usersRepository).save(user);
+        verify(tempUsersRepository).delete(tempUser);
     }
 
     @Test
@@ -222,21 +217,6 @@ class UsersServiceTests {
         assertEquals(currentUser.getUsername(), updateInfoDTO.getUsername());
         assertNotNull(currentUser.getCountry());
         assertNotNull(currentUser.getCity());
-    }
-
-    @Test
-    public void deleteTempUser() {
-        User user = getTestUser();
-        user.setStatus(User.Status.TEMPORALLY_REGISTERED);
-        usersService.deleteTempUser(user);
-        verify(usersRepository).delete(user);
-    }
-
-    @Test
-    public void deleteTempUserWhenUserIsNotTemporallyRegistered() {
-        User user = getTestUser();
-        usersService.deleteTempUser(user);
-        verify(usersRepository, never()).delete(user);
     }
 
     @Test
@@ -602,7 +582,6 @@ class UsersServiceTests {
                 .city("test_city")
                 .country("test_country")
                 .role(User.Role.ROLE_USER)
-                .status(User.Status.REGISTERED)
                 .registeredAt(LocalDateTime.now())
                 .avatar("test_avatar")
                 .build();
@@ -616,7 +595,6 @@ class UsersServiceTests {
                 .city("test_city")
                 .country("test_country")
                 .role(User.Role.ROLE_USER)
-                .status(User.Status.REGISTERED)
                 .registeredAt(LocalDateTime.now())
                 .avatar("test_avatar")
                 .build();

@@ -21,8 +21,7 @@ public class KafkaProducersConfig {
 	@Value("${spring.kafka.consumer.bootstrap-servers}")
 	private String bootstrapAddress;
 
-	@Bean
-	public ProducerFactory<String, EmailMessageDTO> messageProducerFactory() {
+	private ProducerFactory<String, EmailMessageDTO> messageProducerFactory() {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
 		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -30,8 +29,7 @@ public class KafkaProducersConfig {
 		return new DefaultKafkaProducerFactory<>(props);
 	}
 
-	@Bean
-	public ProducerFactory<String, Long> longProducerFactory() {
+	private ProducerFactory<String, Long> longProducerFactory() {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
 		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);

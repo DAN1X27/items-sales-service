@@ -37,6 +37,8 @@ public class UsersService {
 
 	private final UsersRepository usersRepository;
 
+	private final TempUsersRepository tempUsersRepository;
+
 	private final FilesService filesService;
 
 	private final CommentsRepository commentsRepository;
@@ -64,6 +66,9 @@ public class UsersService {
 
 	@Value("${access_key}")
 	private String accessKey;
+
+	@Value("${temp-users_storage_time}")
+	private int tempUsersStorageTime;
 
 	public User getByEmail(String email) {
 		return usersRepository.findByEmail(email).orElseThrow(() -> new UserException("User not found"));
@@ -104,25 +109,21 @@ public class UsersService {
 		return commentMapper.toResponseCommentDTOList(comments);
 	}
 
-	@Transactional
 	public void temporalRegistration(RegistrationDTO registrationDTO) {
-		usersRepository.save(User.builder()
-			.username(registrationDTO.getUsername())
-			.email(registrationDTO.getEmail())
-			.password(registrationDTO.getPassword())
-			.role(User.Role.ROLE_USER)
-			.status(User.Status.TEMPORALLY_REGISTERED)
-			.registeredAt(LocalDateTime.now())
-			.avatar(defaultAvatar)
-			.country(registrationDTO.getCountry())
-			.city(registrationDTO.getCity())
-			.build());
+		TempUser tempUser = userMapper.toTempUserFromRegistrationDTO(registrationDTO);
+		tempUser.setRole(User.Role.ROLE_USER);
+		tempUser.setRegisteredAt(LocalDateTime.now());
+		tempUser.setLiveTime(tempUsersStorageTime);
+		tempUsersRepository.save(tempUser);
 	}
 
 	@Transactional
 	public DataDTO<Long> registrationConfirm(String email) {
-		User user = getByEmail(email);
-		user.setStatus(User.Status.REGISTERED);
+		TempUser tempUser = tempUsersRepository.findById(email).orElseThrow(() -> new UserException("User not found"));
+		User user = userMapper.fromTempUser(tempUser);
+		user.setAvatar(defaultAvatar);
+		usersRepository.save(user);
+		tempUsersRepository.delete(tempUser);
 		return new DataDTO<>(user.getId());
 	}
 
@@ -151,11 +152,8 @@ public class UsersService {
 		user.setEmail(email);
 	}
 
-	@Transactional
-	public void deleteTempUser(User user) {
-		if (user.getStatus() == User.Status.TEMPORALLY_REGISTERED) {
-			usersRepository.delete(user);
-		}
+	public void deleteTempUser(String email) {
+		tempUsersRepository.deleteById(email);
 	}
 
 	@Transactional
@@ -321,12 +319,6 @@ public class UsersService {
 			.ifPresentOrElse(blockedUsersRepository::delete, () -> {
 				throw new UserException("User is not blocked");
 			});
-	}
-
-	@Transactional
-	public void deleteTempUsers() {
-		usersRepository.deleteAllByStatusAndRegisteredAtBefore(User.Status.TEMPORALLY_REGISTERED,
-				LocalDateTime.now().minusDays(1));
 	}
 
 	public List<DataDTO<Long>> getBlockedUsers(int page, int count) {

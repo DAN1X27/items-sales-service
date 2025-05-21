@@ -1,8 +1,11 @@
 package danix.app.authentication_service.util;
 
-import danix.app.authentication_service.dto.EmailKey;
-import danix.app.authentication_service.services.EmailKeysService;
+import danix.app.authentication_service.dto.EmailKeyDTO;
+import danix.app.authentication_service.dto.RegistrationEmailKeyDTO;
+import danix.app.authentication_service.feign.UsersService;
+import danix.app.authentication_service.services.AuthenticationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -11,19 +14,33 @@ import org.springframework.validation.Validator;
 @RequiredArgsConstructor
 public class EmailKeyValidator implements Validator {
 
-	private final EmailKeysService emailKeysService;
+	private final AuthenticationService authenticationService;
+	private final UsersService usersService;
+	@Value("${access_key}")
+	private String accessKey;
+	@Value("${max-email-key-attempts}")
+	private int maxAttempts;
 
 	@Override
 	public boolean supports(Class<?> clazz) {
-		return EmailKey.class.equals(clazz);
+		return EmailKeyDTO.class.equals(clazz);
 	}
 
 	@Override
 	public void validate(Object target, Errors errors) {
-		EmailKey keyDTO = (EmailKey) target;
-		emailKeysService.getByEmail(keyDTO.getEmail()).ifPresentOrElse(key -> {
-			if (!key.equals(keyDTO.getKey())) {
-				errors.rejectValue("key", "", "Incorrect key");
+		EmailKeyDTO keyDTO = (EmailKeyDTO) target;
+		authenticationService.getKey(keyDTO.getEmail()).ifPresentOrElse(emailKey -> {
+			if (emailKey.getKey() != keyDTO.getKey()) {
+				authenticationService.incrementEmailKeyAttempts(emailKey);
+				if (emailKey.getAttempts() >= maxAttempts) {
+					authenticationService.deleteEmailKey(emailKey);
+					if (keyDTO instanceof RegistrationEmailKeyDTO) {
+						usersService.deleteTempUser(emailKey.getEmail(), accessKey);
+					}
+					errors.rejectValue("key", "", "Attempt limit reached");
+				} else {
+					errors.rejectValue("key", "", "Incorrect key");
+				}
 			}
 		}, () -> errors.rejectValue("email", "", "Email not found"));
 	}

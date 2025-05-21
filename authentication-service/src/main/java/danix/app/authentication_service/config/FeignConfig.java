@@ -17,7 +17,7 @@ public class FeignConfig {
 
 	@Bean
 	public ErrorDecoder errorDecoder() {
-		return ((methodKey, response) -> {
+		return (methodKey, response) -> {
 			ErrorDecoder decoder = new ErrorDecoder.Default();
 			if (response.status() == 400) {
 				try (InputStream stream = response.body().asInputStream()) {
@@ -31,7 +31,7 @@ public class FeignConfig {
 				}
 			}
 			return decoder.decode(methodKey, response);
-		});
+		};
 	}
 
 }

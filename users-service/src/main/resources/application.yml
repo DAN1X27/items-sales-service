@@ -43,6 +43,13 @@ eureka:
     service-url:
       defaultZone: ${eureka.server.url}
 access_key: ${access_key}
+temp-users_storage_time: ${temp-users_storage_time}
+redis:
+  host: ${redis.host}
+  port: ${redis.port}
+  password: ${redis.password}
+  username: ${redis.username}
+  database: ${redis.database}
 management:
   endpoints:
     web:

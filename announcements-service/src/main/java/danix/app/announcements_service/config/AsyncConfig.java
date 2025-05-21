@@ -9,7 +9,7 @@ import java.util.concurrent.Executor;
 @Configuration
 public class AsyncConfig {
 
-    @Bean("virtualExecutor")
+    @Bean
     public Executor virtualExecutor() {
         return new VirtualThreadTaskExecutor();
     }

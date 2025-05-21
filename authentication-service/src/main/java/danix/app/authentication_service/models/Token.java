@@ -1,31 +1,35 @@
 package danix.app.authentication_service.models;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
+import java.io.Serializable;
 import java.util.Date;
 
-@Entity
-@Table(name = "tokens")
-@Getter
-@Setter
+@Table("tokens")
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Token {
+@Builder
+public class Token implements Persistable<String>, Serializable {
 
 	@Id
 	private String id;
 
-	@Column(name = "user_id")
+	@Column("user_id")
 	private Long userId;
 
-	@Column(name = "expired_date")
+	@Column("expired_date")
 	private Date expiredDate;
 
+	@Override
+	public boolean isNew() {
+		return true;
+	}
 }

@@ -15,26 +15,30 @@ import java.util.UUID;
 @Component
 public class JWTUtil {
 
-	private final String SECRET;
+	private final Algorithm ALGORITHM;
+	private final int STORAGE_DAYS;
 
-	public JWTUtil(@Value("${jwt_secret}") String SECRET) {
-		this.SECRET = SECRET;
+	public JWTUtil(@Value("${jwt_secret}") String secret, @Value("${tokens-storage-days}") int storageDays) {
+		this.ALGORITHM = Algorithm.HMAC256(secret);
+		this.STORAGE_DAYS = storageDays;
 	}
 
-	public String generateToken(String email) {
-		Date expirationDate = Date.from(ZonedDateTime.now().plusDays(14).toInstant());
-		return JWT.create()
+	public TokenData generateToken(String email) {
+		Date expirationDate = Date.from(ZonedDateTime.now().plusDays(STORAGE_DAYS).toInstant());
+		String id = UUID.randomUUID().toString();
+		String token = JWT.create()
 			.withSubject("User details")
 			.withClaim("email", email)
-			.withJWTId(UUID.randomUUID().toString())
+			.withJWTId(id)
 			.withIssuedAt(new Date())
 			.withIssuer("items-sales-service")
 			.withExpiresAt(expirationDate)
-			.sign(Algorithm.HMAC256(SECRET));
+			.sign(ALGORITHM);
+		return new TokenData(id, expirationDate, token);
 	}
 
 	public String getEmailFromToken(String token) throws JWTVerificationException {
-		JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET))
+		JWTVerifier verifier = JWT.require(ALGORITHM)
 			.withSubject("User details")
 			.withIssuer("items-sales-service")
 			.build();
@@ -43,7 +47,7 @@ public class JWTUtil {
 	}
 
 	public String getIdFromToken(String token) throws JWTVerificationException {
-		JWTVerifier verifier = JWT.require(Algorithm.HMAC256(SECRET))
+		JWTVerifier verifier = JWT.require(ALGORITHM)
 			.withSubject("User details")
 			.withIssuer("items-sales-service")
 			.build();
