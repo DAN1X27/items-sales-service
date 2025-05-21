@@ -5,7 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
@@ -42,14 +44,12 @@ public class SecurityConfig {
 				.access(accessKeyAuthManager())
 				.anyRequest()
 				.permitAll())
-			.sessionManagement(session ->
-					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 			.build();
 	}
 
-	@Bean
-	public AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
+	private AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
 		return (authentication, object) -> {
 			String accessKey = object.getRequest().getParameter("access_key");
 			if (accessKey == null || !accessKey.equals(this.accessKey)) {
@@ -65,11 +65,11 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationProvider authenticationProvider() {
+	public AuthenticationManager authenticationProvider() {
 		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
 		authProvider.setUserDetailsService(userDetailsService);
 		authProvider.setPasswordEncoder(passwordEncoder());
-		return authProvider;
+		return new ProviderManager(authProvider);
 	}
 
 }

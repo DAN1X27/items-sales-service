@@ -15,7 +15,4 @@ public interface UsersRepository extends JpaRepository<User, Long> {
 
 	Optional<User> findByUsername(String username);
 
-	@Modifying
-	void deleteAllByStatusAndRegisteredAtBefore(User.Status status, LocalDateTime time);
-
 }

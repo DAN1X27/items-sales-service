@@ -1,7 +1,6 @@
-package danix.app.authentication_service.config;
+package danix.app.users_service.config;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,31 +19,23 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 @ConfigurationProperties("redis")
 @EnableRedisRepositories(enableKeyspaceEvents = RedisKeyValueAdapter.EnableKeyspaceEvents.ON_STARTUP)
 @Data
-@Slf4j
 public class RedisConfig {
 
     private String host;
 
     private int port;
 
-    private String password;
-
     private String username;
+
+    private String password;
 
     private int database;
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate() {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory());
-        return template;
-    }
-
-    @Bean
     public RedisConnectionFactory connectionFactory() {
         RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
-        configuration.setPort(port);
         configuration.setHostName(host);
+        configuration.setPort(port);
         configuration.setDatabase(database);
         configuration.setUsername(username);
         configuration.setPassword(password);
@@ -52,16 +43,23 @@ public class RedisConfig {
     }
 
     @Bean
-    MessageListenerAdapter listenerAdapter(MessageListener listener) {
-        return new MessageListenerAdapter(listener);
+    public RedisTemplate<String, Object> redisTemplate() {
+        RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setConnectionFactory(connectionFactory());
+        return redisTemplate;
     }
 
     @Bean
-    RedisMessageListenerContainer listenerContainer(RedisConnectionFactory connectionFactory,
-                                                    MessageListenerAdapter listenerAdapter) {
+    RedisMessageListenerContainer listenerContainer(MessageListenerAdapter listenerAdapter,
+                                                    RedisConnectionFactory connectionFactory) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(listenerAdapter, new PatternTopic("__keyevent@*__:expired"));
         return container;
+    }
+
+    @Bean
+    MessageListenerAdapter listenerAdapter(MessageListener listener) {
+        return new MessageListenerAdapter(listener);
     }
 }

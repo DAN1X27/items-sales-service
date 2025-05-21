@@ -65,6 +65,8 @@ services:
       - "6379:6379"
     networks:
       - items-sales-service-net
+    command: >
+      --requirepass ${DB_PASSWORD}
 networks:
   items-sales-service-net:
     external: true

@@ -1,8 +1,10 @@
 package danix.app.users_service.mapper;
 
 import danix.app.users_service.dto.AuthenticationDTO;
+import danix.app.users_service.dto.RegistrationDTO;
 import danix.app.users_service.dto.ResponseUserDTO;
 import danix.app.users_service.dto.UserInfoDTO;
+import danix.app.users_service.models.TempUser;
 import danix.app.users_service.models.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -16,6 +18,10 @@ public interface UserMapper {
 
 	@Mapping(target = "gradesCount", expression = "java(user.getGrades().size())")
 	UserInfoDTO toUserInfoDTO(User user);
+
+	TempUser toTempUserFromRegistrationDTO(RegistrationDTO registrationDTO);
+
+	User fromTempUser(TempUser tempUser);
 
 	AuthenticationDTO toAuthenticationDTO(User user);
 

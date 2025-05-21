@@ -61,7 +61,6 @@ CREATE TABLE users
     username      VARCHAR                                                    NOT NULL,
     email         VARCHAR                                                    NOT NULL,
     password      VARCHAR                                                    NOT NULL,
-    status        VARCHAR                                                    NOT NULL,
     role          VARCHAR                                                    NOT NULL,
     registered_at TIMESTAMP WITHOUT TIME ZONE                                NOT NULL,
     avatar        VARCHAR DEFAULT '3a2cd62f-121a-48b5-b0aa-e54454d4d996.jpg' NOT NULL,
