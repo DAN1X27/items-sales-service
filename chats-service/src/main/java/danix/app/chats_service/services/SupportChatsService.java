@@ -46,7 +46,7 @@ public class SupportChatsService {
 
 	private final SupportChatMapper supportChatMapper;
 
-	private static final AbstractChatFactory factory = AbstractChatFactory.getFactory(ChatType.SUPPORT_CHAT);
+	private final Map<ChatType, ChatFactory> factoryMap;
 
 	public List<ResponseSupportChatDTO> findAllByUser() {
 		long id = getCurrentUser().getId();
@@ -81,9 +81,9 @@ public class SupportChatsService {
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
 		});
-		SupportChat chat = ((SupportChat) factory.getChat(user.getId(), null));
+		SupportChat chat = (factoryMap.get(ChatType.SUPPORT_CHAT).getChat(user.getId(), null));
 		chatsRepository.save(chat);
-		messagesRepository.save((SupportChatMessage) factory.getMessage(message, chat, TEXT));
+		messagesRepository.save(factoryMap.get(ChatType.SUPPORT_CHAT).getMessage(message, chat, TEXT));
 		return new DataDTO<>(chat.getId());
 	}
 
@@ -151,7 +151,7 @@ public class SupportChatsService {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
-		SupportChatMessage message = (SupportChatMessage) factory.getMessage(text, chat, contentType);
+		SupportChatMessage message = factoryMap.get(ChatType.SUPPORT_CHAT).getMessage(text, chat, contentType);
 		messagesRepository.save(message);
 		return message;
 	}

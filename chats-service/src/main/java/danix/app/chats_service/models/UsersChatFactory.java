@@ -2,13 +2,15 @@ package danix.app.chats_service.models;
 
 import danix.app.chats_service.security.UserDetailsServiceImpl;
 import danix.app.chats_service.util.ContentType;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-class UsersChatFactory implements AbstractChatFactory {
+@Component
+class UsersChatFactory implements ChatFactory {
 
     @Override
-    public Chat getChat(Long user1Id, Long user2Id) {
+    public UsersChat getChat(Long user1Id, Long user2Id) {
         return UsersChat.builder()
                 .user1Id(user1Id)
                 .user2Id(user2Id)
@@ -16,7 +18,7 @@ class UsersChatFactory implements AbstractChatFactory {
     }
 
     @Override
-    public Message getMessage(String text, Chat chat, ContentType contentType) {
+    public ChatMessage getMessage(String text, Chat chat, ContentType contentType) {
         return ChatMessage.builder()
                 .chat((UsersChat) chat)
                 .senderId(UserDetailsServiceImpl.getCurrentUser().getId())
@@ -24,5 +26,10 @@ class UsersChatFactory implements AbstractChatFactory {
                 .contentType(contentType)
                 .sentTime(LocalDateTime.now())
                 .build();
+    }
+
+    @Override
+    public ChatType getChatType() {
+        return ChatType.USERS_CHAT;
     }
 }
