@@ -4,8 +4,7 @@ import danix.app.chats_service.dto.ResponseChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feign.UsersService;
 import danix.app.chats_service.mapper.MessageMapper;
-import danix.app.chats_service.models.ChatMessage;
-import danix.app.chats_service.models.UsersChat;
+import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
 import danix.app.chats_service.repositories.UsersChatsRepository;
 import danix.app.chats_service.security.User;
@@ -68,6 +67,12 @@ public class UsersChatsServiceTest {
     @Mock
     private SecurityContext securityContext;
 
+    @Mock
+    private Map<ChatType, ChatFactory> factoryMap;
+
+    @Mock
+    private ChatFactory factory;
+
     @InjectMocks
     private UsersChatsService chatsService;
 
@@ -101,6 +106,7 @@ public class UsersChatsServiceTest {
         mockCurrentUser();
         when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
         when(chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), 2L)).thenReturn(Optional.empty());
+        when(factoryMap.get(ChatType.USERS_CHAT)).thenReturn(factory);
         when(chatsRepository.save(any())).thenReturn(chat);
         chatsService.create(2L, "token");
         verify(chatsRepository).save(any());
@@ -127,6 +133,7 @@ public class UsersChatsServiceTest {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
+        when(factoryMap.get(ChatType.USERS_CHAT)).thenReturn(factory);
         when(messagesRepository.save(any())).thenReturn(ChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
         chatsService.sendTextMessage(chat.getId(), "text", "token");
@@ -163,6 +170,7 @@ public class UsersChatsServiceTest {
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
         when(messagesRepository.save(any())).thenReturn(ChatMessage.builder().chat(chat).build());
+        when(factoryMap.get(ChatType.USERS_CHAT)).thenReturn(factory);
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
         chatsService.sendFile(chat.getId(), testFile, "token", ContentType.IMAGE);
         verify(messagesRepository).save(any());
