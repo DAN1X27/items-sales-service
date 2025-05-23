@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 @Component
-class UsersChatFactory implements ChatFactory {
+public class UsersChatFactory implements ChatFactory {
 
     @Override
     public UsersChat getChat(Long user1Id, Long user2Id) {
