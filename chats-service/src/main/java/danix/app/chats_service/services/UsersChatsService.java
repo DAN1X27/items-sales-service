@@ -43,7 +43,7 @@ public class UsersChatsService {
 
 	private final MessageMapper messageMapper;
 
-	private static final AbstractChatFactory factory = AbstractChatFactory.getFactory(ChatType.USERS_CHAT);
+	private final Map<ChatType, ChatFactory> factoryMap;
 
 	public List<ResponseChatDTO> getUserChats() {
 		User currentUser = getCurrentUser();
@@ -70,7 +70,7 @@ public class UsersChatsService {
 		chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresent(chat -> {
 			throw new ChatException("Chat already exists");
 		});
-		UsersChat chat = chatsRepository.save((UsersChat) factory.getChat(currentUser.getId(), userId));
+		UsersChat chat = chatsRepository.save(factoryMap.get(ChatType.USERS_CHAT).getChat(currentUser.getId(), userId));
 		messagingTemplate.convertAndSend("/topic/user/" + userId + "/main",
 				Map.of("created_chat", chat.getId()));
 		return new DataDTO<>(chat.getId());
@@ -106,7 +106,7 @@ public class UsersChatsService {
 		if (isBlocked(userId, token)) {
 			throw new ChatException("User has blocked you");
 		}
-		return messagesRepository.save((ChatMessage) factory.getMessage(text, chat, contentType));
+		return messagesRepository.save(factoryMap.get(ChatType.USERS_CHAT).getMessage(text, chat, contentType));
 	}
 
 	@Transactional
