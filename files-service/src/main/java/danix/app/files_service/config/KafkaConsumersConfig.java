@@ -1,5 +1,6 @@
 package danix.app.files_service.config;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,14 +35,13 @@ public class KafkaConsumersConfig {
 		return new DefaultKafkaConsumerFactory<>(
 				props,
 				new StringDeserializer(),
-				new JsonDeserializer<>(List.class)
+				new JsonDeserializer<>(new TypeReference<>() {})
 		);
 	}
 
 	@Bean
 	public ConcurrentKafkaListenerContainerFactory<String, List<String>> listFactory() {
-		ConcurrentKafkaListenerContainerFactory<String, List<String>> factory =
-				new ConcurrentKafkaListenerContainerFactory<>();
+		var factory = new ConcurrentKafkaListenerContainerFactory<String, List<String>>();
 		factory.setConsumerFactory(consumerFactory());
 		return factory;
 	}

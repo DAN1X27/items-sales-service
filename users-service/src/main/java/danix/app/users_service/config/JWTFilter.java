@@ -33,8 +33,11 @@ public class JWTFilter extends OncePerRequestFilter {
 				Map<String, Object> data = authenticationService.authorize(authHeader);
 				String email = (String) data.get("email");
 				UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(email);
-				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-						null, userDetails.getAuthorities());
+				var authToken = new UsernamePasswordAuthenticationToken(
+						userDetails,
+						null,
+						userDetails.getAuthorities()
+				);
 				SecurityContextHolder.getContext().setAuthentication(authToken);
 			}
 			catch (Exception e) {

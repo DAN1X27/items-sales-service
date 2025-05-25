@@ -3,7 +3,7 @@ package danix.app.chats_service.services;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.dto.ResponseSupportChatDTO;
-import danix.app.chats_service.mapper.SupportChatMapper;
+import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
@@ -44,26 +44,17 @@ public class SupportChatsService {
 
 	private final MessageMapper messageMapper;
 
-	private final SupportChatMapper supportChatMapper;
-
-	private final Map<ChatType, ChatFactory> factoryMap;
+	private final ChatMapper chatMapper;
 
 	public List<ResponseSupportChatDTO> findAllByUser() {
 		long id = getCurrentUser().getId();
-		return supportChatMapper.toResponseSupportChatDTOList(chatsRepository.findAllByUserIdOrAdminId(id, id));
+		return chatMapper.toResponseSupportChatDTOList(chatsRepository.findAllByUserIdOrAdminId(id, id));
 	}
 
-	public List<ResponseSupportChatDTO> findAll(int page, int count, String sort) {
-		Sort.Direction sortDirection;
-		try {
-			sortDirection = Sort.Direction.valueOf(sort.toUpperCase());
-		}
-		catch (IllegalArgumentException e) {
-			throw new ChatException("Invalid sort type");
-		}
+	public List<ResponseSupportChatDTO> findAll(int page, int count, Sort.Direction sortDirection) {
 		List<SupportChat> chats = chatsRepository.findAllByStatus(WAIT, PageRequest.of(page, count,
 				Sort.by(sortDirection, "id")));
-		return supportChatMapper.toResponseSupportChatDTOList(chats);
+		return chatMapper.toResponseSupportChatDTOList(chats);
 	}
 
 	public List<ResponseMessageDTO> getChatMessages(long id, int page, int count) {
@@ -81,9 +72,9 @@ public class SupportChatsService {
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
 		});
-		SupportChat chat = (factoryMap.get(ChatType.SUPPORT_CHAT).getChat(user.getId(), null));
+		SupportChat chat = chatMapper.toSupportChat(user.getId());
 		chatsRepository.save(chat);
-		messagesRepository.save(factoryMap.get(ChatType.SUPPORT_CHAT).getMessage(message, chat, TEXT));
+		messagesRepository.save(messageMapper.toSupportChatMessage(message, user.getId(), chat, TEXT));
 		return new DataDTO<>(chat.getId());
 	}
 
@@ -151,7 +142,7 @@ public class SupportChatsService {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
-		SupportChatMessage message = factoryMap.get(ChatType.SUPPORT_CHAT).getMessage(text, chat, contentType);
+		SupportChatMessage message = messageMapper.toSupportChatMessage(text, getCurrentUser().getId(), chat, contentType);
 		messagesRepository.save(message);
 		return message;
 	}

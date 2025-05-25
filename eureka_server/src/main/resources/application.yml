@@ -18,5 +18,8 @@ eureka:
     fetchRegistry: false
     service-url:
       defaultZone: ${url}
+  server:
+    peer-node-connect-timeout-ms: 20000
+    peer-node-read-timeout-ms: 20000
 server:
   port: 8761

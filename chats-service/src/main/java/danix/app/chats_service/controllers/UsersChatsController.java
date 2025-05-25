@@ -2,7 +2,7 @@ package danix.app.chats_service.controllers;
 
 import danix.app.chats_service.dto.MessageDTO;
 import danix.app.chats_service.dto.DataDTO;
-import danix.app.chats_service.dto.ResponseChatDTO;
+import danix.app.chats_service.dto.ResponseUsersChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.services.UsersChatsService;
 import danix.app.chats_service.util.ChatException;
@@ -27,7 +27,7 @@ public class UsersChatsController {
 	private final UsersChatsService chatsService;
 
 	@GetMapping
-	public ResponseEntity<List<ResponseChatDTO>> getUserChats() {
+	public ResponseEntity<List<ResponseUsersChatDTO>> getUserChats() {
 		return new ResponseEntity<>(chatsService.getUserChats(), HttpStatus.OK);
 	}
 

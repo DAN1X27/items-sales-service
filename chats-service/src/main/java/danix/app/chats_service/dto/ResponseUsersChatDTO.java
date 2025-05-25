@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class ResponseChatDTO {
+public class ResponseUsersChatDTO {
 
 	private long id;
 

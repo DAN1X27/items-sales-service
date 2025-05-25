@@ -1,7 +1,7 @@
 package danix.app.chats_service;
 
 import danix.app.chats_service.feign.FilesService;
-import danix.app.chats_service.models.ChatMessage;
+import danix.app.chats_service.models.UsersChatMessage;
 import danix.app.chats_service.models.Message;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.security.UserDetailsImpl;
@@ -62,7 +62,7 @@ public class MessagesServiceTest {
 
     @BeforeEach
     public void setTestMessage() {
-        testMessage = ChatMessage.builder()
+        testMessage = UsersChatMessage.builder()
                 .id(1L)
                 .text("test_message")
                 .contentType(ContentType.TEXT)

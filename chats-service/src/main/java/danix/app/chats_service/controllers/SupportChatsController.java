@@ -10,6 +10,7 @@ import danix.app.chats_service.util.ContentType;
 import danix.app.chats_service.util.ErrorResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,8 +37,8 @@ public class SupportChatsController {
 
 	@GetMapping
 	@PreAuthorize(value = "hasRole('ADMIN')")
-	public List<ResponseSupportChatDTO> findAll(@RequestParam(defaultValue = "ASC") String sort, @RequestParam int page,
-			@RequestParam int count) {
+	public List<ResponseSupportChatDTO> findAll(@RequestParam(defaultValue = "ASC") Sort.Direction sort,
+												@RequestParam int page, @RequestParam int count) {
 		return chatService.findAll(page, count, sort);
 	}
 

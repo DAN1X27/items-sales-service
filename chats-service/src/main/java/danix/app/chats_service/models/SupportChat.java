@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class SupportChat implements Chat {
+public class SupportChat {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

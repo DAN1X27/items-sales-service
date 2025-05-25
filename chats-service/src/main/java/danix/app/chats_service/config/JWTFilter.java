@@ -27,8 +27,11 @@ public class JWTFilter extends OncePerRequestFilter {
 		if (authHeader != null) {
 			try {
 				UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(authHeader);
-				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-						null, userDetails.getAuthorities());
+				var authToken = new UsernamePasswordAuthenticationToken(
+						userDetails,
+						null,
+						userDetails.getAuthorities()
+				);
 				SecurityContextHolder.getContext().setAuthentication(authToken);
 			}
 			catch (Exception e) {
