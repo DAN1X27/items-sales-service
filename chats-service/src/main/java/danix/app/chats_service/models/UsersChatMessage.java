@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatMessage implements Message {
+public class UsersChatMessage implements Message {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

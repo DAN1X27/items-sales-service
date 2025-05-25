@@ -1,8 +1,9 @@
 package danix.app.chats_service;
 
-import danix.app.chats_service.dto.ResponseChatDTO;
+import danix.app.chats_service.dto.ResponseUsersChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feign.UsersService;
+import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
@@ -56,6 +57,9 @@ public class UsersChatsServiceTest {
     private MessagesService messagesService;
 
     @Mock
+    private ChatMapper chatMapper;
+
+    @Mock
     private MessageMapper messageMapper;
 
     @Mock
@@ -66,12 +70,6 @@ public class UsersChatsServiceTest {
 
     @Mock
     private SecurityContext securityContext;
-
-    @Mock
-    private Map<ChatType, ChatFactory> factoryMap;
-
-    @Mock
-    private ChatFactory factory;
 
     @InjectMocks
     private UsersChatsService chatsService;
@@ -97,7 +95,7 @@ public class UsersChatsServiceTest {
                 UsersChat.builder().user1Id(2L).user2Id(currentUser.getId()).build()
         );
         when(chatsRepository.findAllByUser1IdOrUser2Id(currentUser.getId(), currentUser.getId())).thenReturn(chats);
-        List<ResponseChatDTO> responseChats = chatsService.getUserChats();
+        List<ResponseUsersChatDTO> responseChats = chatsService.getUserChats();
         responseChats.forEach(chat -> assertEquals(2L, chat.getUserId()));
     }
 
@@ -106,8 +104,7 @@ public class UsersChatsServiceTest {
         mockCurrentUser();
         when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
         when(chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), 2L)).thenReturn(Optional.empty());
-        when(factoryMap.get(ChatType.USERS_CHAT)).thenReturn(factory);
-        when(chatsRepository.save(any())).thenReturn(chat);
+        when(chatMapper.toUsersChat(any(), any())).thenReturn(chat);
         chatsService.create(2L, "token");
         verify(chatsRepository).save(any());
         verify(messagingTemplate).convertAndSend(eq("/topic/user/2/main"), any(Map.class));
@@ -133,8 +130,7 @@ public class UsersChatsServiceTest {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
-        when(factoryMap.get(ChatType.USERS_CHAT)).thenReturn(factory);
-        when(messagesRepository.save(any())).thenReturn(ChatMessage.builder().chat(chat).build());
+        when(messageMapper.toUsersChatMessage(any(), any(), any(), any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
         chatsService.sendTextMessage(chat.getId(), "text", "token");
         verify(messagesRepository).save(any());
@@ -169,8 +165,8 @@ public class UsersChatsServiceTest {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
         when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
-        when(messagesRepository.save(any())).thenReturn(ChatMessage.builder().chat(chat).build());
-        when(factoryMap.get(ChatType.USERS_CHAT)).thenReturn(factory);
+        when(messagesRepository.save(any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
+        when(messageMapper.toUsersChatMessage(any(), any(), any(), any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
         chatsService.sendFile(chat.getId(), testFile, "token", ContentType.IMAGE);
         verify(messagesRepository).save(any());
@@ -180,7 +176,7 @@ public class UsersChatsServiceTest {
 
     @Test
     public void updateMessage() {
-        ChatMessage message = ChatMessage.builder().id(1L).chat(chat).build();
+        UsersChatMessage message = UsersChatMessage.builder().id(1L).chat(chat).build();
         when(messagesRepository.findById(message.getId())).thenReturn(Optional.of(message));
         chatsService.updateMessage(message.getId(), "text");
         verify(messagesService).updateMessage(message, "text", "/topic/chat/" + chat.getId());
@@ -194,7 +190,7 @@ public class UsersChatsServiceTest {
 
     @Test
     public void deleteMessage() {
-        ChatMessage message = ChatMessage.builder().id(1L).chat(chat).build();
+        UsersChatMessage message = UsersChatMessage.builder().id(1L).chat(chat).build();
         when(messagesRepository.findById(message.getId())).thenReturn(Optional.of(message));
         chatsService.deleteMessage(message.getId());
         verify(messagesService).deleteMessage(eq(message), eq("/topic/chat/" + chat.getId()), any());

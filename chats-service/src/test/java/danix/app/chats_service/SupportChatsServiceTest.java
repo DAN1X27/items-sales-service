@@ -1,6 +1,7 @@
 package danix.app.chats_service;
 
 import danix.app.chats_service.dto.ResponseMessageDTO;
+import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
@@ -38,6 +39,9 @@ import static org.mockito.Mockito.when;
 public class SupportChatsServiceTest {
 
     @Mock
+    private ChatMapper chatMapper;
+
+    @Mock
     private MessageMapper messageMapper;
 
     @Mock
@@ -61,12 +65,6 @@ public class SupportChatsServiceTest {
     @Mock
     private Authentication authentication;
 
-    @Mock
-    private Map<ChatType, ChatFactory> factoryMap;
-
-    @Mock
-    private ChatFactory factory;
-
     @InjectMocks
     private SupportChatsService supportChatsService;
 
@@ -89,8 +87,7 @@ public class SupportChatsServiceTest {
         mockCurrentUser();
         when(supportChatsRepository.findByUserIdAndStatusIn(eq(currentUser.getId()), any()))
                 .thenReturn(Optional.empty());
-        when(factoryMap.get(ChatType.SUPPORT_CHAT)).thenReturn(factory);
-        when(factory.getChat(any(), any())).thenReturn(supportChat);
+        when(chatMapper.toSupportChat(any())).thenReturn(supportChat);
         supportChatsService.create("message");
         verify(supportChatsRepository).save(any());
         verify(messagesRepository).save(any());
@@ -200,12 +197,11 @@ public class SupportChatsServiceTest {
     public void sendMessage() {
         mockCurrentUser();
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
-        when(factoryMap.get(ChatType.SUPPORT_CHAT)).thenReturn(factory);
-        Message message = SupportChatMessage.builder()
+        SupportChatMessage message = SupportChatMessage.builder()
                 .id(1L)
                 .chat(supportChat)
                 .build();
-        when(factory.getMessage(any(), any(), any())).thenReturn(message);
+        when(messageMapper.toSupportChatMessage(any(), any(), any(), any())).thenReturn(message);
         ResponseMessageDTO messageDTO = new ResponseMessageDTO();
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(messageDTO);
         supportChatsService.sendTextMessage("message", supportChat.getId());
@@ -230,12 +226,11 @@ public class SupportChatsServiceTest {
     public void sendFile() {
         mockCurrentUser();
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
-        when(factoryMap.get(ChatType.SUPPORT_CHAT)).thenReturn(factory);
-        Message message = SupportChatMessage.builder()
+        SupportChatMessage message = SupportChatMessage.builder()
                 .id(1L)
                 .chat(supportChat)
                 .build();
-        when(factory.getMessage(any(), any(), any())).thenReturn(message);
+        when(messageMapper.toSupportChatMessage(any(), any(), any(), any())).thenReturn(message);
         ResponseMessageDTO messageDTO = new ResponseMessageDTO();
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(messageDTO);
         supportChatsService.sendFile(supportChat.getId(), testFile, ContentType.IMAGE);

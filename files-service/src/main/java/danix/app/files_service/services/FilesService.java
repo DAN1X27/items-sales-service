@@ -1,9 +1,10 @@
 package danix.app.files_service.services;
 
+import danix.app.files_service.config.AppProperties;
 import danix.app.files_service.util.FileException;
 import danix.app.files_service.util.FileType;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,26 +20,11 @@ import java.nio.file.Path;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class FilesService {
 
-	private final String USERS_AVATARS_PATH;
-
-	private final String CHATS_IMAGES_PATH;
-
-	private final String CHATS_VIDEOS_PATH;
-
-	private final String ANNOUNCEMENTS_IMAGES_PATH;
-
-	public FilesService(@Value("${paths.users_avatars}") String usersAvatarsPath,
-                        @Value("${paths.chats_images}") String chatsImagesPath,
-                        @Value("${paths.chats_videos}") String chatsVideosPath,
-                        @Value("${paths.announcements_images}") String announcementsImagesPath) {
-		USERS_AVATARS_PATH = usersAvatarsPath;
-		CHATS_IMAGES_PATH = chatsImagesPath;
-		CHATS_VIDEOS_PATH = chatsVideosPath;
-		ANNOUNCEMENTS_IMAGES_PATH = announcementsImagesPath;
-	}
+	private final AppProperties appProperties;
 
 	public void upload(FileType type, MultipartFile file, String fileName) {
 		String name = file.getOriginalFilename();
@@ -101,10 +87,10 @@ public class FilesService {
 
 	private String getDirPath(FileType type) {
 		return switch (type) {
-			case USER_AVATAR -> USERS_AVATARS_PATH;
-			case CHAT_IMAGE -> CHATS_IMAGES_PATH;
-			case CHAT_VIDEO -> CHATS_VIDEOS_PATH;
-			case ANNOUNCEMENT_IMAGE -> ANNOUNCEMENTS_IMAGES_PATH;
+			case USER_AVATAR -> appProperties.getUsersAvatars();
+			case CHAT_IMAGE -> appProperties.getChatsImages();
+			case CHAT_VIDEO -> appProperties.getChatsVideos();
+			case ANNOUNCEMENT_IMAGE -> appProperties.getAnnouncementsImages();
 		};
 	}
 
@@ -114,7 +100,7 @@ public class FilesService {
 			if (file.endsWith(".jpg")) {
 				delete(FileType.CHAT_IMAGE, file);
 			}
-			else if (file.endsWith(".mp4")) {
+			else {
 				delete(FileType.CHAT_VIDEO, file);
 			}
 		}

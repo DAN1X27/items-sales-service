@@ -53,8 +53,7 @@ public class AuthenticationService {
 
     @Transactional
     public JWTTokenDTO login(LoginDTO loginDTO) {
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword());
+        var authToken = new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword());
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(authToken);

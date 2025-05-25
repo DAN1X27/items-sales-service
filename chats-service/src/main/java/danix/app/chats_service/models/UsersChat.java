@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UsersChat implements Chat{
+public class UsersChat {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +24,6 @@ public class UsersChat implements Chat{
 	private long user2Id;
 
 	@OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
-	private List<ChatMessage> chatMessages;
+	private List<UsersChatMessage> chatMessages;
 
 }

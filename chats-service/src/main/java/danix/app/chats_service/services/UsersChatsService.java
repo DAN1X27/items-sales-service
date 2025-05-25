@@ -1,9 +1,10 @@
 package danix.app.chats_service.services;
 
 import danix.app.chats_service.dto.DataDTO;
-import danix.app.chats_service.dto.ResponseChatDTO;
+import danix.app.chats_service.dto.ResponseUsersChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feign.UsersService;
+import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.UsersChatsRepository;
@@ -43,14 +44,12 @@ public class UsersChatsService {
 
 	private final MessageMapper messageMapper;
 
-	private final Map<ChatType, ChatFactory> factoryMap;
+	private final ChatMapper chatMapper;
 
-	public List<ResponseChatDTO> getUserChats() {
+	public List<ResponseUsersChatDTO> getUserChats() {
 		User currentUser = getCurrentUser();
-		return chatsRepository.findAllByUser1IdOrUser2Id(currentUser.getId(), currentUser.getId()).stream()
-			    .map(chat -> new ResponseChatDTO(chat.getId(),
-					chat.getUser1Id() == currentUser.getId() ? chat.getUser2Id() : chat.getUser1Id()))
-			    .toList();
+		List<UsersChat> chats = chatsRepository.findAllByUser1IdOrUser2Id(currentUser.getId(), currentUser.getId());
+		return chatMapper.toResponseUsersChatDTOList(chats);
 	}
 
 	public List<ResponseMessageDTO> getChatMessages(long chatId, int page, int count) {
@@ -70,7 +69,8 @@ public class UsersChatsService {
 		chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresent(chat -> {
 			throw new ChatException("Chat already exists");
 		});
-		UsersChat chat = chatsRepository.save(factoryMap.get(ChatType.USERS_CHAT).getChat(currentUser.getId(), userId));
+		UsersChat chat = chatMapper.toUsersChat(currentUser.getId(), userId);
+		chatsRepository.save(chat);
 		messagingTemplate.convertAndSend("/topic/user/" + userId + "/main",
 				Map.of("created_chat", chat.getId()));
 		return new DataDTO<>(chat.getId());
@@ -78,7 +78,7 @@ public class UsersChatsService {
 
 	@Transactional
 	public DataDTO<Long> sendTextMessage(long chatId, String text, String token) {
-		ChatMessage message = saveMessage(chatId, text, ContentType.TEXT, token);
+		UsersChatMessage message = saveMessage(chatId, text, ContentType.TEXT, token);
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
@@ -86,19 +86,19 @@ public class UsersChatsService {
 	@Transactional
 	public DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType) {
 		String fileName = MessagesService.getFileName(contentType);
-		ChatMessage message = saveMessage(chatId, fileName, contentType, token);
+		UsersChatMessage message = saveMessage(chatId, fileName, contentType, token);
 		messagesService.saveFile(file, message, contentType, () -> messagesRepository.delete(message));
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
 
 	public ResponseEntity<?> getFile(long id, ContentType contentType) {
-		ChatMessage message = getMessageById(id);
+		UsersChatMessage message = getMessageById(id);
 		checkUserInChat(message.getChat());
 		return messagesService.getFile(message, contentType);
 	}
 
-	private ChatMessage saveMessage(long chatId, String text, ContentType contentType, String token) {
+	private UsersChatMessage saveMessage(long chatId, String text, ContentType contentType, String token) {
 		User currentUser = getCurrentUser();
 		UsersChat chat = chatsRepository.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
@@ -106,18 +106,20 @@ public class UsersChatsService {
 		if (isBlocked(userId, token)) {
 			throw new ChatException("User has blocked you");
 		}
-		return messagesRepository.save(factoryMap.get(ChatType.USERS_CHAT).getMessage(text, chat, contentType));
+		UsersChatMessage message = messageMapper.toUsersChatMessage(text, currentUser.getId(), chat, contentType);
+		messagesRepository.save(message);
+		return message;
 	}
 
 	@Transactional
 	public void updateMessage(long id, String text) {
-		ChatMessage message = getMessageById(id);
+		UsersChatMessage message = getMessageById(id);
 		messagesService.updateMessage(message, text, "/topic/chat/" + message.getChat().getId());
 	}
 
 	@Transactional
 	public void deleteMessage(long id) {
-		ChatMessage message = getMessageById(id);
+		UsersChatMessage message = getMessageById(id);
 		String topic = "/topic/chat/" + message.getChat().getId();
 		messagesService.deleteMessage(message, topic, () -> messagesRepository.delete(message));
 	}
@@ -138,11 +140,11 @@ public class UsersChatsService {
 		messagingTemplate.convertAndSend("/topic/chat/" + chat.getId(), response);
 	}
 
-	private ChatMessage getMessageById(long id) {
+	private UsersChatMessage getMessageById(long id) {
 		return messagesRepository.findById(id).orElseThrow(() -> new ChatException("Message not found"));
 	}
 
-	private void sendMessageOnTopic(ChatMessage message) {
+	private void sendMessageOnTopic(UsersChatMessage message) {
 		messagingTemplate.convertAndSend("/topic/chat/" + message.getChat().getId(),
 				messageMapper.toResponseMessageDTO(message));
 	}
