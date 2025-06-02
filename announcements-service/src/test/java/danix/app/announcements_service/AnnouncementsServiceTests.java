@@ -351,7 +351,7 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         announcementsService.delete(announcement.getId());
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate).send(eq("deleted_announcements_images"), any());
+        verify(listKafkaTemplate).send(eq("deleted_announcement"), any());
     }
 
     @Test
@@ -362,7 +362,7 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         announcementsService.delete(announcement.getId());
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate, never()).send(eq("deleted_announcements_images"), any());
+        verify(listKafkaTemplate, never()).send(eq("deleted_announcement"), any());
     }
 
     @Test
@@ -390,7 +390,7 @@ class AnnouncementsServiceTests {
         when(usersService.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate).send(eq("deleted_announcements_images"), any());
+        verify(listKafkaTemplate).send(eq("deleted_announcement"), any());
         verify(emailMessageKafkaTemplate).send(eq("message"), any());
     }
 
