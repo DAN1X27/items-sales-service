@@ -10,8 +10,8 @@ import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
 import danix.app.chats_service.repositories.UsersChatsRepository;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.security.UserDetailsImpl;
-import danix.app.chats_service.services.UsersChatsService;
-import danix.app.chats_service.services.MessagesService;
+import danix.app.chats_service.services.impl.UsersChatsServiceImpl;
+import danix.app.chats_service.services.impl.MessagesServiceImpl;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,7 @@ public class UsersChatsServiceTest {
     private SimpMessagingTemplate messagingTemplate;
 
     @Mock
-    private MessagesService messagesService;
+    private MessagesServiceImpl messagesService;
 
     @Mock
     private ChatMapper chatMapper;
@@ -72,7 +72,7 @@ public class UsersChatsServiceTest {
     private SecurityContext securityContext;
 
     @InjectMocks
-    private UsersChatsService chatsService;
+    private UsersChatsServiceImpl chatsService;
 
     private final User currentUser = User.builder().id(1L).build();
 
@@ -102,7 +102,7 @@ public class UsersChatsServiceTest {
     @Test
     public void create() {
         mockCurrentUser();
-        when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), 2L)).thenReturn(Optional.empty());
         when(chatMapper.toUsersChat(any(), any())).thenReturn(chat);
         chatsService.create(2L, "token");
@@ -113,14 +113,14 @@ public class UsersChatsServiceTest {
     @Test
     public void createWhenCurrentUserBlocked() {
         mockCurrentUser();
-        when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", true));
+        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", true));
         assertThrows(ChatException.class, () -> chatsService.create(2L, "token"));
     }
 
     @Test
     public void createWhenChatAlreadyExists() {
         mockCurrentUser();
-        when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), 2L)).thenReturn(Optional.of(new UsersChat()));
         assertThrows(ChatException.class, () -> chatsService.create(2L, "token"));
     }
@@ -129,7 +129,7 @@ public class UsersChatsServiceTest {
     public void sendTextMessage() {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
-        when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(messageMapper.toUsersChatMessage(any(), any(), any(), any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
         chatsService.sendTextMessage(chat.getId(), "text", "token");
@@ -148,7 +148,7 @@ public class UsersChatsServiceTest {
     public void sendTextMessageWhenCurrentUserBlocked() {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
-        when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", true));
+        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", true));
         assertThrows(ChatException.class, () -> chatsService.sendTextMessage(chat.getId(), "text", "token"));
     }
 
@@ -164,7 +164,7 @@ public class UsersChatsServiceTest {
     public void sendFile() {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
-        when(usersService.isBlocked(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(messagesRepository.save(any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toUsersChatMessage(any(), any(), any(), any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
