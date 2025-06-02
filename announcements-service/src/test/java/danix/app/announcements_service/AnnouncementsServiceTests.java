@@ -11,6 +11,8 @@ import danix.app.announcements_service.repositories.*;
 import danix.app.announcements_service.security.User;
 import danix.app.announcements_service.security.UserDetailsImpl;
 import danix.app.announcements_service.services.AnnouncementsService;
+import danix.app.announcements_service.services.CurrencyConverterService;
+import danix.app.announcements_service.services.impl.AnnouncementsServiceImpl;
 import danix.app.announcements_service.util.AnnouncementException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +61,7 @@ class AnnouncementsServiceTests {
     private FilesService filesService;
 
     @Mock
-    private CurrencyConverterAPI converterAPI;
+    private CurrencyConverterService currencyConverterService;
 
     @Mock
     private UsersService usersService;
@@ -86,7 +88,7 @@ class AnnouncementsServiceTests {
     private AnonymousAuthenticationToken anonymousToken;
 
     @InjectMocks
-    private AnnouncementsService announcementsService;
+    private AnnouncementsServiceImpl announcementsService;
 
     private static final User testUser = User.builder().id(1L).build();
 
@@ -187,7 +189,7 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
-        announcementsService.like(announcement.getId());
+        announcementsService.addLike(announcement.getId());
         verify(likesRepository).save(any(Like.class));
         assertEquals(1, announcement.getLikesCount());
     }
@@ -195,7 +197,7 @@ class AnnouncementsServiceTests {
     @Test
     public void likeWhenAnnouncementNotFound() {
         when(announcementsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.like(1L));
+        assertThrows(AnnouncementException.class, () -> announcementsService.addLike(1L));
     }
 
     @Test
@@ -204,7 +206,7 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Like()));
         mockCurrentUser();
-        assertThrows(AnnouncementException.class, () -> announcementsService.like(announcement.getId()));
+        assertThrows(AnnouncementException.class, () -> announcementsService.addLike(announcement.getId()));
     }
 
     @Test
@@ -288,14 +290,14 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(reportsRepository.findByAnnouncementAndSenderId(announcement, testUser.getId())).thenReturn(Optional.empty());
-        announcementsService.report(announcement.getId(), "Test");
+        announcementsService.createReport(announcement.getId(), "Test");
         verify(reportsRepository).save(any(Report.class));
     }
 
     @Test
     public void reportWhenAnnouncementNotFound() {
         when(announcementsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.report(1L, "Test"));
+        assertThrows(AnnouncementException.class, () -> announcementsService.createReport(1L, "Test"));
     }
 
     @Test
@@ -304,7 +306,7 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
         when(reportsRepository.findByAnnouncementAndSenderId(announcement, testUser.getId())).thenReturn(Optional.of(new Report()));
-        assertThrows(AnnouncementException.class, () -> announcementsService.report(announcement.getId(), "Test"));
+        assertThrows(AnnouncementException.class, () -> announcementsService.createReport(announcement.getId(), "Test"));
     }
 
     @Test
@@ -329,14 +331,14 @@ class AnnouncementsServiceTests {
         when(reportMapper.toShowDTO(report)).thenReturn(new ShowReportDTO());
         ResponseAnnouncementDTO announcementDTO = new ResponseAnnouncementDTO();
         when(announcementMapper.toResponseDTO(announcement, USD)).thenReturn(announcementDTO);
-        ShowReportDTO showDTO = announcementsService.getReport(report.getId(), USD);
+        ShowReportDTO showDTO = announcementsService.showReport(report.getId(), USD);
         assertEquals(announcementDTO, showDTO.getAnnouncement());
     }
 
     @Test
     public void getReportWhenReportNotFound() {
         when(reportsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(AnnouncementException.class, () -> announcementsService.getReport(1L, USD));
+        assertThrows(AnnouncementException.class, () -> announcementsService.showReport(1L, USD));
     }
 
     @Test
@@ -424,6 +426,7 @@ class AnnouncementsServiceTests {
                 .currency(USD)
                 .build();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
+        when(currencyConverterService.convertPrice(any(), any())).thenReturn(updateDTO.getPrice());
         mockCurrentUser();
         announcementsService.update(announcement.getId(), updateDTO);
         assertEquals(updateDTO.getTitle(), announcement.getTitle());

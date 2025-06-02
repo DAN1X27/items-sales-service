@@ -92,7 +92,7 @@ public class AnnouncementsController {
 
     @PostMapping("/{id}/like")
     public ResponseEntity<HttpStatus> like(@PathVariable Long id) {
-        announcementsService.like(id);
+        announcementsService.addLike(id);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
@@ -105,13 +105,13 @@ public class AnnouncementsController {
     @GetMapping("/reports")
     public ResponseEntity<List<ResponseReportDTO>> getReports(@RequestParam int page, @RequestParam int count,
                 @RequestParam(value = "sort", defaultValue = "DESC") Sort.Direction sort) {
-        return new ResponseEntity<>(announcementsService.getReports(page, count, sort), HttpStatus.OK);
+        return new ResponseEntity<>(announcementsService.getAllReports(page, count, sort), HttpStatus.OK);
     }
 
     @GetMapping("/report/{id}")
     public ResponseEntity<ShowReportDTO> getReport(@PathVariable long id,
                 @RequestParam(defaultValue = "USD") CurrencyCode currency) {
-        return new ResponseEntity<>(announcementsService.getReport(id, currency), HttpStatus.OK);
+        return new ResponseEntity<>(announcementsService.showReport(id, currency), HttpStatus.OK);
     }
 
     @DeleteMapping("/report/{id}")
@@ -124,7 +124,7 @@ public class AnnouncementsController {
     public ResponseEntity<HttpStatus> report(@PathVariable Long id,
                 @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
-        announcementsService.report(id, causeDTO.getCause());
+        announcementsService.createReport(id, causeDTO.getCause());
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
@@ -172,7 +172,7 @@ public class AnnouncementsController {
 
     @DeleteMapping("/expired")
     public ResponseEntity<HttpStatus> deleteExpiredAnnouncements() {
-        announcementsService.deleteExpiredAnnouncements();
+        announcementsService.deleteExpired();
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

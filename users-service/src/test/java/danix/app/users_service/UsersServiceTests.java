@@ -12,7 +12,7 @@ import danix.app.users_service.mapper.UserMapper;
 import danix.app.users_service.models.*;
 import danix.app.users_service.repositories.*;
 import danix.app.users_service.security.UserDetailsImpl;
-import danix.app.users_service.services.UsersService;
+import danix.app.users_service.services.impl.UsersServiceImpl;
 import danix.app.users_service.util.UserException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,7 +95,7 @@ class UsersServiceTests {
     private Authentication authentication;
 
     @InjectMocks
-    private UsersService usersService;
+    private UsersServiceImpl usersService;
 
     @BeforeEach
     public void setUp() {
@@ -407,14 +407,14 @@ class UsersServiceTests {
         mockCurrentUser(currentUser);
         when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(reportsRepository.findByUserAndSender(testUser, currentUser)).thenReturn(Optional.empty());
-        usersService.report(testUser.getId(), "test_cause");
+        usersService.createReport(testUser.getId(), "test_cause");
         verify(reportsRepository).save(any());
     }
 
     @Test
     public void reportWhenUserNotFound() {
         when(usersRepository.findById(2L)).thenReturn(Optional.empty());
-        assertThrows(UserException.class, () -> usersService.report(2L, "test_cause"));
+        assertThrows(UserException.class, () -> usersService.createReport(2L, "test_cause"));
     }
 
     @Test
@@ -424,7 +424,7 @@ class UsersServiceTests {
         mockCurrentUser(currentUser);
         when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(reportsRepository.findByUserAndSender(testUser, currentUser)).thenReturn(Optional.of(new Report()));
-        assertThrows(UserException.class, () -> usersService.report(testUser.getId(), "test_cause"));
+        assertThrows(UserException.class, () -> usersService.createReport(testUser.getId(), "test_cause"));
     }
 
     @Test

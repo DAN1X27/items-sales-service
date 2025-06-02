@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import static danix.app.users_service.services.UsersService.getCurrentUser;
+import static danix.app.users_service.services.impl.UsersServiceImpl.getCurrentUser;
 
 @RestController
 @RequestMapping("/users")
@@ -45,7 +45,7 @@ public class UsersController {
 
 	@GetMapping("/info")
 	public ResponseEntity<UserInfoDTO> getUserInfo() {
-		return new ResponseEntity<>(usersService.userInfo(), HttpStatus.OK);
+		return new ResponseEntity<>(usersService.getInfo(), HttpStatus.OK);
 	}
 
 	@GetMapping("/{id}/email")
@@ -158,7 +158,7 @@ public class UsersController {
 
 	@GetMapping("/reports")
 	public ResponseEntity<List<ResponseReportDTO>> reports(@RequestParam int page, @RequestParam int count) {
-		return new ResponseEntity<>(usersService.reports(page, count), HttpStatus.OK);
+		return new ResponseEntity<>(usersService.getReports(page, count), HttpStatus.OK);
 	}
 
 	@DeleteMapping("/report/{id}")
@@ -171,7 +171,7 @@ public class UsersController {
 	public ResponseEntity<HttpStatus> report(@PathVariable Long id, @RequestBody @Valid CauseDTO causeDTO,
 			BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		usersService.report(id, causeDTO.getCause());
+		usersService.createReport(id, causeDTO.getCause());
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 

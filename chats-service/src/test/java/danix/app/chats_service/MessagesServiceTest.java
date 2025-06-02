@@ -5,7 +5,7 @@ import danix.app.chats_service.models.UsersChatMessage;
 import danix.app.chats_service.models.Message;
 import danix.app.chats_service.security.User;
 import danix.app.chats_service.security.UserDetailsImpl;
-import danix.app.chats_service.services.MessagesService;
+import danix.app.chats_service.services.impl.MessagesServiceImpl;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ public class MessagesServiceTest {
     private MultipartFile testFile;
 
     @InjectMocks
-    private MessagesService messagesService;
+    private MessagesServiceImpl messagesService;
 
     private final User currentUser = User.builder().id(1L).build();
 

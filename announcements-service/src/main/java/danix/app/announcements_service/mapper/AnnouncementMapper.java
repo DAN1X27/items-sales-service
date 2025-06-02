@@ -6,7 +6,8 @@ import danix.app.announcements_service.dto.ResponseAnnouncementDTO;
 import danix.app.announcements_service.dto.ShowAnnouncementDTO;
 import danix.app.announcements_service.models.Announcement;
 import danix.app.announcements_service.repositories.IdProjection;
-import danix.app.announcements_service.services.AnnouncementsService;
+import danix.app.announcements_service.services.CurrencyConverterService;
+import danix.app.announcements_service.services.impl.AnnouncementsServiceImpl;
 import danix.app.announcements_service.util.CurrencyCode;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -21,11 +22,10 @@ import java.util.List;
 public abstract class AnnouncementMapper {
 
     @Autowired
-    @Lazy
-    protected AnnouncementsService announcementsService;
+    protected CurrencyConverterService currencyConverterService;
 
     protected final String PRICE_CONVERT_EXPRESSION =
-            "java(announcementsService.convertPrice(currency, course -> announcement.getPrice() * course))";
+            "java(currencyConverterService.convertPrice(currency, course -> announcement.getPrice() * course))";
 
     @Mapping(target = "imageId", source = "announcement", qualifiedByName = "imageId")
     @Mapping(target = "price", expression = PRICE_CONVERT_EXPRESSION)

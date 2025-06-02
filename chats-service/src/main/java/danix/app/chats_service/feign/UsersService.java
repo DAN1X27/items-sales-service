@@ -12,6 +12,6 @@ import java.util.Map;
 public interface UsersService {
 
 	@GetMapping("/users/{id}/is-blocked")
-	Map<String, Object> isBlocked(@PathVariable long id, @RequestHeader("Authorization") String token);
+	Map<String, Object> isBlockedByUser(@PathVariable long id, @RequestHeader("Authorization") String token);
 
 }
