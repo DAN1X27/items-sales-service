@@ -8,6 +8,7 @@ import danix.app.chats_service.services.SupportChatsService;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import danix.app.chats_service.util.ErrorResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -24,6 +25,7 @@ import java.util.List;
 import static danix.app.chats_service.controllers.UsersChatsController.handleRequestErrors;
 
 @RestController
+@Tag(name = "Support chats API")
 @RequestMapping("/chats/support")
 @RequiredArgsConstructor
 public class SupportChatsController {

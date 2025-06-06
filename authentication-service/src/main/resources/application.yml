@@ -33,6 +33,14 @@ redis:
 email-keys-storage-time-minutes: ${email-keys-storage-time-minutes}
 max-email-key-attempts: ${max-email-key-attempts}
 tokens-storage-days: ${tokens-storage-days}
+allowed_origins: ${allowed_origins}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /auth/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /auth/swagger-ui/index.html
 eureka:
   instance:
     instanceId: ${spring.application.name}

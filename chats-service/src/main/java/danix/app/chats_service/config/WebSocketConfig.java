@@ -25,8 +25,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	private final AuthChannelInterceptorAdapter authChannelInterceptorAdapter;
 
-	@Value("${allowed_origin}")
-	private String allowedOrigin;
+	@Value("${allowed_origins}")
+	private String[] allowedOrigins;
 
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -36,7 +36,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		registry.addEndpoint("/ws").setAllowedOrigins(allowedOrigin).withSockJS();
+		registry
+				.addEndpoint("/ws")
+				.setAllowedOrigins(allowedOrigins)
+				.withSockJS();
 	}
 
 	@Override

@@ -1,5 +1,6 @@
 package danix.app.authentication_service.config;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import danix.app.authentication_service.security.UserDetailsImpl;
 import danix.app.authentication_service.security.UserDetailsServiceImpl;
 import danix.app.authentication_service.services.AuthenticationService;
@@ -7,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 public class JWTFilter extends OncePerRequestFilter {
 
@@ -42,8 +45,12 @@ public class JWTFilter extends OncePerRequestFilter {
                         userDetails.getAuthorities()
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-            } catch (Exception e) {
+            } catch (IllegalStateException | JWTVerificationException e) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
         }

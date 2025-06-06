@@ -13,6 +13,7 @@ After these services are started, use this command for other services.
 Use http://localhost:8080 for all requests.
 All endpoints except login, registration and reset password require header 'Authorization': 'Bearer {your token}'
 ```
+### For more info open http://localhost:8080/swagger-ui/index.html
 ## 1. AUTHENTICATION
 ### POST: /auth/login
 ```
@@ -375,11 +376,8 @@ PARAMS (not required):
 2. filters - Types of items according to which the response will be filtered.
 3. city - city by which to sort (Required if user is not authorized).
 4. country - country by which to sort (Required if user is not authorized).
-BODY (not required):
-1. type - Sort type.
-Available sort types: LIKES, PRICE, ID, WATCHES.
-2. direction - Sort direction.
-Available directions: ASC, DESC.
+5. sort_type - type of sort (LIKES, PRICE, ID, WATCHES).
+6. sort_direction - direction of sort (ASC, DESC).
 ```
 #### REQUEST EXAMPLE:
 ##### URL: http://localhost:8080/announcemets?page=0&count=10&currency=BYN&filters=PHONES,PODS
@@ -399,11 +397,8 @@ PARAMS (not required):
 3. city - City by which to sort (Required if user is not authorized).
 4. country - Country by which to sort (Required if user is not authorized).
 5. title - Title for search.
-BODY (not required):
-1. type - Sort type.
-Available sort types: LIKES, PRICE, ID, WATCHES.
-2. direction - Sort direction.
-Available directions: ASC, DESC.
+6. sort_type - type of sort (LIKES, PRICE, ID, WATCHES).
+7. sort_direction - direction of sort (ASC, DESC).
 ```
 #### REQUEST EXAMPLE:
 ##### URL: http://localhost:8080/announcemets/find?title={title}&page=0&count=10&currency=BYN&filters=PHONES,PODS

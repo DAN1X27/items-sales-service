@@ -5,12 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
-import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebFilter;
 
 @SpringBootApplication
 public class GatewayServiceApplication {

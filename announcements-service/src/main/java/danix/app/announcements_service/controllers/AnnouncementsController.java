@@ -3,9 +3,8 @@ package danix.app.announcements_service.controllers;
 import danix.app.announcements_service.dto.*;
 import danix.app.announcements_service.security.User;
 import danix.app.announcements_service.services.AnnouncementsService;
-import danix.app.announcements_service.util.AnnouncementException;
-import danix.app.announcements_service.util.CurrencyCode;
-import danix.app.announcements_service.util.ErrorResponse;
+import danix.app.announcements_service.util.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +24,7 @@ import static danix.app.announcements_service.security.UserDetailsServiceImpl.is
 
 @Slf4j
 @RestController
+@Tag(name = "Announcements API")
 @RequestMapping("/announcements")
 @RequiredArgsConstructor
 public class AnnouncementsController {
@@ -35,18 +35,19 @@ public class AnnouncementsController {
     public ResponseEntity<List<ResponseAnnouncementDTO>> findAll(@RequestParam int page, @RequestParam int count,
                @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam(required = false) String city,
                @RequestParam(required = false) String country, @RequestParam(required = false) List<String> filters,
-               @RequestBody(required = false) @Valid SortDTO sortDTO, BindingResult bindingResult) {
-        handleRequestErrors(bindingResult);
+               @RequestParam(defaultValue = "ID", name = "sort_type") SortType sortType,
+               @RequestParam(defaultValue = "DESC", name = "sort_direction") Sort.Direction sortDirection) {
+        SortData sortData = new SortData(sortType, sortDirection);
         if (isAuthenticated()) {
             User user = getCurrentUser();
-            return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO,
+            return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortData,
                     user.getCountry(), user.getCity()), HttpStatus.OK);
         } else if (city == null) {
             throw new AnnouncementException("City is required");
         } else if (country == null) {
             throw new AnnouncementException("Country is required");
         } else {
-            return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortDTO,
+            return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortData,
                     country, city), HttpStatus.OK);
         }
     }
@@ -55,19 +56,20 @@ public class AnnouncementsController {
     public ResponseEntity<List<ResponseAnnouncementDTO>> findByTitle(@RequestParam String title,
                 @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam int page, @RequestParam int count,
                 @RequestParam(required = false) String city, @RequestParam(required = false) String country,
-                @RequestParam(required = false) List<String> filters, @RequestBody(required = false) @Valid SortDTO sortDTO,
-                BindingResult bindingResult) {
-        handleRequestErrors(bindingResult);
+                @RequestParam(required = false) List<String> filters,
+                @RequestParam(defaultValue = "ID", name = "sort_type") SortType sortType,
+                @RequestParam(defaultValue = "DESC", value = "sort_direction") Sort.Direction sortDirection) {
+        SortData sortData = new SortData(sortType, sortDirection);
         if (isAuthenticated()) {
             User user = getCurrentUser();
-            return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO,
+            return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortData,
                     user.getCountry(), user.getCity()), HttpStatus.OK);
         } else if (city == null) {
             throw new AnnouncementException("City is required");
         } else if (country == null) {
             throw new AnnouncementException("Country is required");
         } else {
-            return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortDTO,
+            return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortData,
                     country, city), HttpStatus.OK);
         }
     }

@@ -27,12 +27,20 @@ spring:
     multipart:
       max-file-size: ${max_file_size}
       max-request-size: ${max_file_size}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /announcements/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /announcements/swagger-ui/index.html
 server:
   port: 8082
 max_storage_days: ${max_storage_days}
 max_images_count: ${max_images_count}
 access_key: ${access_key}
 currency_converter_api_key: ${currency_converter_api_key}
+allowed_origins: ${allowed_origins}
 eureka:
   instance:
     instanceId: ${spring.application.name}

@@ -31,7 +31,14 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${eureka.server.url}
-allowed_origin: ${allowed_origin}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /chats/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /chats/swagger-ui/index.html
+allowed_origins: ${allowed_origins}
 access_key: ${access_key}
 server:
   port: 8085
