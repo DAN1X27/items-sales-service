@@ -7,7 +7,6 @@ import danix.app.announcements_service.dto.ResponseAnnouncementDTO;
 import danix.app.announcements_service.dto.ResponseReportDTO;
 import danix.app.announcements_service.dto.ShowAnnouncementDTO;
 import danix.app.announcements_service.dto.ShowReportDTO;
-import danix.app.announcements_service.dto.SortDTO;
 import danix.app.announcements_service.dto.UpdateAnnouncementDTO;
 import danix.app.announcements_service.feign.FilesService;
 import danix.app.announcements_service.feign.UsersService;
@@ -19,6 +18,7 @@ import danix.app.announcements_service.services.AnnouncementsService;
 import danix.app.announcements_service.services.CurrencyConverterService;
 import danix.app.announcements_service.util.AnnouncementException;
 import danix.app.announcements_service.util.CurrencyCode;
+import danix.app.announcements_service.util.SortData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -79,8 +79,8 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 
 	@Override
 	public List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters,
-												 SortDTO sortDTO, String country, String city) {
-		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
+												 SortData sortData, String country, String city) {
+		PageRequest pageRequest = getPageRequest(page, count, sortData);
 		if (filters != null) {
 			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
 					.findAllByCountryAndCityAndTypeIn(country, city, pageRequest, filters));
@@ -95,8 +95,8 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 
 	@Override
 	public List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, CurrencyCode currency, List<String> filters,
-													SortDTO sortDTO, String country, String city) {
-		PageRequest pageRequest = getPageRequest(page, count, sortDTO);
+													SortData sortData, String country, String city) {
+		PageRequest pageRequest = getPageRequest(page, count, sortData);
 		if (filters != null) {
 			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
 					.findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(title, country, city, filters, pageRequest));
@@ -109,14 +109,13 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 				.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, pageRequest.getSort()), currency);
 	}
 
-	private PageRequest getPageRequest(int page, int count, SortDTO sort) {
-		boolean isNull = sort == null;
-		String property = isNull ? "id" : switch (sort.getType()) {
+	private PageRequest getPageRequest(int page, int count, SortData sortData) {
+		String property = switch (sortData.type()) {
 			case LIKES -> "likesCount";
 			case WATCHES -> "watchesCount";
-			default -> sort.getType().toString().toLowerCase();
+			default -> sortData.type().toString().toLowerCase();
 		};
-		Sort.Direction direction = isNull ? Sort.Direction.DESC : sort.getDirection();
+		Sort.Direction direction = sortData.direction();
 		return PageRequest.of(page, count, Sort.by(direction, property));
 	}
 

@@ -2,6 +2,7 @@ package danix.app.announcements_service.services;
 
 import danix.app.announcements_service.dto.*;
 import danix.app.announcements_service.util.CurrencyCode;
+import danix.app.announcements_service.util.SortData;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -9,11 +10,11 @@ import java.util.List;
 
 public interface AnnouncementsService {
 
-    List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters,
-                                          SortDTO sortDTO, String country, String city);
+    List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters, SortData sortData,
+                                          String country, String city);
 
     List<ResponseAnnouncementDTO> findByTitle(int page, int count, String title, CurrencyCode currency, List<String> filters,
-                                              SortDTO sortDTO, String country, String city);
+                                              SortData sortData, String country, String city);
 
     List<ResponseAnnouncementDTO> findAllByUser(Long id, CurrencyCode currency, int page, int count);
 

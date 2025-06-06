@@ -6,6 +6,7 @@ import danix.app.users_service.services.UsersService;
 import danix.app.users_service.util.ErrorResponse;
 import danix.app.users_service.util.RegistrationValidator;
 import danix.app.users_service.util.UserException;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import java.util.Map;
 import static danix.app.users_service.services.impl.UsersServiceImpl.getCurrentUser;
 
 @RestController
+@Tag(name = "Users API")
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UsersController {

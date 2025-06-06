@@ -10,7 +10,7 @@ spring:
       globalcors:
         corsConfigurations:
           '[/**]':
-            allowedOrigins: ${allowed_origin}
+            allowedOrigins: ${allowed_origins}
             allowedHeaders: "*"
             allow-credentials: true
             allowedMethods:
@@ -24,6 +24,19 @@ spring:
       uri: ${config_uri}
       username: ${config_username}
       password: ${config_password}
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+    urls:
+      - name: Announcements service API
+        url: /announcements/v3/api-docs
+      - name: Authentication service API
+        url: /auth/v3/api-docs
+      - name: Chats service API
+        url: /chats/v3/api-docs
+      - name: Users service API
+        url: /users/v3/api-docs
 eureka:
   instance:
     instanceId: ${spring.application.name}

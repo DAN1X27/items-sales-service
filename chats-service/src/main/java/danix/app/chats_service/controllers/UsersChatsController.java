@@ -8,6 +8,7 @@ import danix.app.chats_service.services.UsersChatsService;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
 import danix.app.chats_service.util.ErrorResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
+@Tag(name = "Users chats API")
 @RequestMapping("/chats")
 @RequiredArgsConstructor
 public class UsersChatsController {

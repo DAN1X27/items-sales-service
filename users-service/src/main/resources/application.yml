@@ -32,6 +32,13 @@ server:
   port: 9090
 avatar:
   default: ${default-avatar}
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /users/swagger-ui/index.html
+  api-docs:
+    enabled: true
+    path: /users/v3/api-docs
 eureka:
   instance:
     instanceId: ${spring.application.name}
@@ -42,6 +49,7 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${eureka.server.url}
+allowed_origins: ${allowed_origins}
 access_key: ${access_key}
 temp-users_storage_time: ${temp-users_storage_time}
 redis:

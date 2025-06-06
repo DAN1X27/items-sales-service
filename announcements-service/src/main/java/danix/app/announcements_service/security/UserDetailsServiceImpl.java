@@ -2,7 +2,7 @@ package danix.app.announcements_service.security;
 
 import danix.app.announcements_service.feign.AuthenticationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,6 +28,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 	}
 
 	public static boolean isAuthenticated() {
-		return !(SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken);
+		return SecurityContextHolder.getContext().getAuthentication() instanceof UsernamePasswordAuthenticationToken;
 	}
 }

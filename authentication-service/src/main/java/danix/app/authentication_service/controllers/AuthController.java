@@ -6,6 +6,7 @@ import danix.app.authentication_service.services.AuthenticationService;
 import danix.app.authentication_service.util.AuthenticationException;
 import danix.app.authentication_service.util.EmailKeyValidator;
 import danix.app.authentication_service.util.ErrorResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import static danix.app.authentication_service.security.UserDetailsServiceImpl.g
 
 @Slf4j
 @RestController
+@Tag(name = "Authentication API")
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {

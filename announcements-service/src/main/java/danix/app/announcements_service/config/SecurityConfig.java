@@ -15,6 +15,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -27,11 +32,18 @@ public class SecurityConfig {
     @Value("${access_key}")
     private String accessKey;
 
+    @Value("${allowed_origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain config(HttpSecurity http) throws Exception {
-        return http.csrf(AbstractHttpConfigurer::disable)
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfiguration()))
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/error")
+                        .requestMatchers("/error", "/announcements/swagger-ui/**", "/announcements/v3/api-docs/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS)
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/announcements", "/announcements/{id}", "/announcements/find")
                         .permitAll()
@@ -42,10 +54,21 @@ public class SecurityConfig {
                         .access(accessKeyAuthManager())
                         .anyRequest()
                         .hasAnyRole("USER", "ADMIN"))
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfiguration() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     private AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
