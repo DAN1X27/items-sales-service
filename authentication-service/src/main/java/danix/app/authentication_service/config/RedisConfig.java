@@ -1,7 +1,6 @@
 package danix.app.authentication_service.config;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +19,6 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 @ConfigurationProperties("redis")
 @EnableRedisRepositories(enableKeyspaceEvents = RedisKeyValueAdapter.EnableKeyspaceEvents.ON_STARTUP)
 @Data
-@Slf4j
 public class RedisConfig {
 
     private String host;
@@ -63,5 +61,15 @@ public class RedisConfig {
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(listenerAdapter, new PatternTopic("__keyevent@*__:expired"));
         return container;
+    }
+
+    @Bean
+    MessageListener deletedEmailKeysListener(RedisTemplate<String, Object> redisTemplate) {
+        return ((message, pattern) -> {
+            String key = message.toString();
+            if (key.startsWith("email_keys")) {
+                redisTemplate.opsForSet().remove("email_keys", key);
+            }
+        });
     }
 }

@@ -62,4 +62,14 @@ public class RedisConfig {
     MessageListenerAdapter listenerAdapter(MessageListener listener) {
         return new MessageListenerAdapter(listener);
     }
+
+    @Bean
+    MessageListener deletedTempUsersListener(RedisTemplate<String, Object> redisTemplate) {
+        return ((message, pattern) -> {
+            String key = message.toString();
+            if (key.startsWith("temp_users")) {
+                redisTemplate.opsForSet().remove("temp_users", key);
+            }
+        });
+    }
 }
