@@ -9,7 +9,7 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class MessagesListener {
+public class EmailMessagesListener {
 
 	private final EmailSenderService emailSenderService;
 
