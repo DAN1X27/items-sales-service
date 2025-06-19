@@ -73,6 +73,8 @@ public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
 					}, () -> {
 						throw new IllegalArgumentException();
 					});
+				} else {
+					throw new IllegalArgumentException();
 				}
 			}
 		}

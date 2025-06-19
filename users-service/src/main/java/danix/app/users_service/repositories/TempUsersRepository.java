@@ -6,4 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TempUsersRepository extends CrudRepository<TempUser, String> {
+
+    boolean existsByUsername(String username);
+
 }

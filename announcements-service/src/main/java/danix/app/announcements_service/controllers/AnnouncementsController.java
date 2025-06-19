@@ -13,11 +13,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static danix.app.announcements_service.security.UserDetailsServiceImpl.getCurrentUser;
 import static danix.app.announcements_service.security.UserDetailsServiceImpl.isAuthenticated;
@@ -178,17 +181,13 @@ public class AnnouncementsController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleException(AnnouncementException e) {
-        return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
-    }
-
     private void handleRequestErrors(BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            StringBuilder message = new StringBuilder();
-            bindingResult.getFieldErrors()
-                    .forEach(error -> message.append(error.getDefaultMessage()).append("; "));
-            throw new AnnouncementException(message.toString());
+            LocalDateTime timestamp = LocalDateTime.now();
+            Map<String, ErrorData> error = bindingResult.getFieldErrors().stream()
+                    .collect(Collectors.toMap(FieldError::getField, fieldError -> new ErrorData(
+                            fieldError.getDefaultMessage(), timestamp)));
+            throw new RequestException(error);
         }
     }
 

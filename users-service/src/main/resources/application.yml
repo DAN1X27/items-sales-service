@@ -12,10 +12,6 @@ spring:
     multipart:
       max-file-size: ${max-file-size}
       max-request-size: ${max-file-size}
-  jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
