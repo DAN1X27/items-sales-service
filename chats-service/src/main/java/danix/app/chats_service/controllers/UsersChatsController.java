@@ -5,9 +5,7 @@ import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseUsersChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.services.UsersChatsService;
-import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
-import danix.app.chats_service.util.ErrorResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +15,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
+
+import static danix.app.chats_service.util.RequestValidator.handleRequestErrors;
 
 @RestController
 @Tag(name = "Users chats API")
@@ -95,19 +94,6 @@ public class UsersChatsController {
 	public ResponseEntity<HttpStatus> deleteMessage(@PathVariable long id) {
 		chatsService.deleteMessage(id);
 		return new ResponseEntity<>(HttpStatus.OK);
-	}
-
-	@ExceptionHandler
-	public ResponseEntity<ErrorResponse> handleException(ChatException e) {
-		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
-	}
-
-	static void handleRequestErrors(BindingResult bindingResult) {
-		if (bindingResult.hasErrors()) {
-			StringBuilder message = new StringBuilder();
-			bindingResult.getFieldErrors().forEach(error -> message.append(error.getDefaultMessage()).append("; "));
-			throw new ChatException(message.toString());
-		}
 	}
 
 }

@@ -1,7 +1,8 @@
 package danix.app.files_service.controllers;
 
 import danix.app.files_service.services.FilesService;
-import danix.app.files_service.util.ErrorResponse;
+import danix.app.files_service.util.ErrorData;
+import danix.app.files_service.dto.ErrorResponseDTO;
 import danix.app.files_service.util.FileException;
 import danix.app.files_service.util.FileType;
 import lombok.RequiredArgsConstructor;
@@ -90,8 +91,9 @@ public class FilesController {
 	}
 
 	@ExceptionHandler
-	public ResponseEntity<ErrorResponse> handleException(FileException e) {
-		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
+	public ResponseEntity<ErrorResponseDTO> handleException(FileException e) {
+		ErrorData errorData = new ErrorData(e.getMessage(), LocalDateTime.now());
+		return new ResponseEntity<>(new ErrorResponseDTO(errorData), HttpStatus.BAD_REQUEST);
 	}
 
 }

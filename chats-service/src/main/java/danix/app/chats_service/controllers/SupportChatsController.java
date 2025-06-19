@@ -5,9 +5,7 @@ import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.dto.ResponseSupportChatDTO;
 import danix.app.chats_service.services.SupportChatsService;
-import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
-import danix.app.chats_service.util.ErrorResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +17,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
-import static danix.app.chats_service.controllers.UsersChatsController.handleRequestErrors;
+import static danix.app.chats_service.util.RequestValidator.handleRequestErrors;
 
 @RestController
 @Tag(name = "Support chats API")
@@ -122,11 +119,6 @@ public class SupportChatsController {
 	public ResponseEntity<HttpStatus> deleteMessage(@PathVariable long id) {
 		chatService.deleteMessage(id);
 		return new ResponseEntity<>(HttpStatus.OK);
-	}
-
-	@ExceptionHandler
-	public ResponseEntity<ErrorResponse> handleException(ChatException e) {
-		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
 	}
 
 }

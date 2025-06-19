@@ -3,9 +3,7 @@ package danix.app.authentication_service.controllers;
 import danix.app.authentication_service.dto.*;
 import danix.app.authentication_service.mapper.UserMapper;
 import danix.app.authentication_service.services.AuthenticationService;
-import danix.app.authentication_service.util.AuthenticationException;
-import danix.app.authentication_service.util.EmailKeyValidator;
-import danix.app.authentication_service.util.ErrorResponse;
+import danix.app.authentication_service.util.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static danix.app.authentication_service.security.UserDetailsServiceImpl.getCurrentUser;
 
@@ -106,16 +107,13 @@ public class AuthController {
        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleException(AuthenticationException e) {
-        return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
-    }
-
     private void handleRequestErrors(BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            StringBuilder sb = new StringBuilder();
-            bindingResult.getFieldErrors().forEach(error -> sb.append(error.getDefaultMessage()).append("; "));
-            throw new AuthenticationException(sb.toString());
+            LocalDateTime timestamp = LocalDateTime.now();
+            Map<String, ErrorData> error = bindingResult.getFieldErrors().stream()
+                    .collect(Collectors.toMap(FieldError::getField, fieldError -> new ErrorData(
+                            fieldError.getDefaultMessage(), timestamp)));
+            throw new RequestException(error);
         }
     }
 

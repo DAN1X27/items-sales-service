@@ -27,9 +27,10 @@ public class RegistrationValidator implements Validator {
 		if (usersRepository.findByEmail(userDTO.getEmail()).isPresent() ||
 			tempUsersRepository.findById(userDTO.getEmail()).isPresent()) {
 			errors.rejectValue("email", "", "This email is already in use");
-		} else {
-			usersRepository.findByUsername(userDTO.getUsername()).ifPresent(user -> errors
-					.rejectValue("username", "", "This username is already in use"));
+		}
+		if (usersRepository.findByUsername(userDTO.getUsername()).isPresent() ||
+			tempUsersRepository.existsByUsername(userDTO.getUsername())) {
+			errors.rejectValue("username", "", "This username is already in use");
 		}
 	}
 

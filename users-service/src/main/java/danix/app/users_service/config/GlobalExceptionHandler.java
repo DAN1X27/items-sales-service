@@ -1,8 +1,12 @@
 package danix.app.users_service.config;
 
-import danix.app.users_service.util.ErrorResponse;
+import danix.app.users_service.dto.ErrorResponseDTO;
+import danix.app.users_service.dto.RequestErrorResponseDTO;
+import danix.app.users_service.util.ErrorCode;
+import danix.app.users_service.util.ErrorData;
+import danix.app.users_service.util.RequestException;
+import danix.app.users_service.util.UserException;
 import feign.FeignException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -12,7 +16,6 @@ import org.springframework.web.multipart.MultipartException;
 import java.time.LocalDateTime;
 
 @ControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(FeignException.Unauthorized.class)
@@ -26,8 +29,23 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(MultipartException.class)
-	public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException e) {
-		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
+	public ResponseEntity<ErrorResponseDTO> handleMultipartException(MultipartException e) {
+		return new ResponseEntity<>(getErrorResponseDTO(e), HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler
+	public ResponseEntity<ErrorResponseDTO> handleException(UserException e) {
+		return new ResponseEntity<>(getErrorResponseDTO(e), HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler
+	public ResponseEntity<RequestErrorResponseDTO> handleException(RequestException e) {
+		return new ResponseEntity<>(new RequestErrorResponseDTO(ErrorCode.REQUEST_ERROR, e.getError()), HttpStatus.BAD_REQUEST);
+	}
+
+	private ErrorResponseDTO getErrorResponseDTO(Exception e) {
+		ErrorData errorData = new ErrorData(e.getMessage(), LocalDateTime.now());
+		return new ErrorResponseDTO(ErrorCode.PROCESSING_ERROR, errorData);
 	}
 
 }

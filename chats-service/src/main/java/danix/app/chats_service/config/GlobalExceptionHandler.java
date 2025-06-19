@@ -1,6 +1,11 @@
 package danix.app.chats_service.config;
 
-import danix.app.chats_service.util.ErrorResponse;
+import danix.app.chats_service.util.ChatException;
+import danix.app.chats_service.dto.ErrorResponseDTO;
+import danix.app.chats_service.dto.RequestErrorResponseDTO;
+import danix.app.chats_service.util.ErrorCode;
+import danix.app.chats_service.util.ErrorData;
+import danix.app.chats_service.util.RequestException;
 import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +29,22 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(MultipartException.class)
-	public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException e) {
-		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
+	public ResponseEntity<ErrorResponseDTO> handleMultipartException(MultipartException e) {
+		return new ResponseEntity<>(getErrorResponseDTO(e), HttpStatus.BAD_REQUEST);
 	}
 
+	@ExceptionHandler(ChatException.class)
+	public ResponseEntity<ErrorResponseDTO> handleChatException(ChatException e) {
+		return new ResponseEntity<>(getErrorResponseDTO(e), HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(RequestException.class)
+	public ResponseEntity<RequestErrorResponseDTO> handleRequestException(RequestException e) {
+		return new ResponseEntity<>(new RequestErrorResponseDTO(ErrorCode.REQUEST_ERROR, e.getError()), HttpStatus.BAD_REQUEST);
+	}
+
+	private ErrorResponseDTO getErrorResponseDTO(Exception e) {
+		ErrorData errorData = new ErrorData(e.getMessage(), LocalDateTime.now());
+		return new ErrorResponseDTO(ErrorCode.PROCESSING_ERROR, errorData);
+	}
 }

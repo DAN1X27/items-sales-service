@@ -1,6 +1,11 @@
 package danix.app.announcements_service.config;
 
-import danix.app.announcements_service.util.ErrorResponse;
+import danix.app.announcements_service.dto.ErrorResponseDTO;
+import danix.app.announcements_service.dto.RequestErrorResponseDTO;
+import danix.app.announcements_service.util.AnnouncementException;
+import danix.app.announcements_service.util.ErrorCode;
+import danix.app.announcements_service.util.ErrorData;
+import danix.app.announcements_service.util.RequestException;
 import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +29,23 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(MultipartException.class)
-	public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException e) {
-		return new ResponseEntity<>(new ErrorResponse(e.getMessage(), LocalDateTime.now()), HttpStatus.BAD_REQUEST);
+	public ResponseEntity<ErrorResponseDTO> handleMultipartException(MultipartException e) {
+		return new ResponseEntity<>(getErrorResponseDTO(e), HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler
+	public ResponseEntity<ErrorResponseDTO> handleAnnouncementException(AnnouncementException e) {
+		return new ResponseEntity<>(getErrorResponseDTO(e), HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler
+	public ResponseEntity<RequestErrorResponseDTO> handleRequestException(RequestException e) {
+		return new ResponseEntity<>(new RequestErrorResponseDTO(ErrorCode.REQUEST_ERROR, e.getError()), HttpStatus.BAD_REQUEST);
+	}
+
+	private ErrorResponseDTO getErrorResponseDTO(Exception e) {
+		ErrorData errorData = new ErrorData(e.getMessage(), LocalDateTime.now());
+		return new ErrorResponseDTO(ErrorCode.PROCESSING_ERROR, errorData);
 	}
 
 }
