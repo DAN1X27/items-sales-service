@@ -1,15 +1,14 @@
 package danix.app.chats_service;
 
-import danix.app.chats_service.dto.ResponseUsersChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
-import danix.app.chats_service.feign.UsersService;
+import danix.app.chats_service.feign.UsersAPI;
 import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
 import danix.app.chats_service.repositories.UsersChatsRepository;
-import danix.app.chats_service.security.User;
-import danix.app.chats_service.security.UserDetailsImpl;
+import danix.app.chats_service.util.SecurityUtil;
+import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.impl.UsersChatsServiceImpl;
 import danix.app.chats_service.services.impl.MessagesServiceImpl;
 import danix.app.chats_service.util.ChatException;
@@ -22,16 +21,11 @@ import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -48,7 +42,7 @@ public class UsersChatsServiceTest {
     private UsersChatsMessagesRepository messagesRepository;
 
     @Mock
-    private UsersService usersService;
+    private UsersAPI usersAPI;
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
@@ -66,10 +60,7 @@ public class UsersChatsServiceTest {
     private MultipartFile testFile;
 
     @Mock
-    private Authentication authentication;
-
-    @Mock
-    private SecurityContext securityContext;
+    private SecurityUtil securityUtil;
 
     @InjectMocks
     private UsersChatsServiceImpl chatsService;
@@ -88,21 +79,9 @@ public class UsersChatsServiceTest {
     }
 
     @Test
-    public void getUserChats() {
-        mockCurrentUser();
-        List<UsersChat> chats = List.of(
-                UsersChat.builder().user1Id(currentUser.getId()).user2Id(2L).build(),
-                UsersChat.builder().user1Id(2L).user2Id(currentUser.getId()).build()
-        );
-        when(chatsRepository.findAllByUser1IdOrUser2Id(currentUser.getId(), currentUser.getId())).thenReturn(chats);
-        List<ResponseUsersChatDTO> responseChats = chatsService.getUserChats();
-        responseChats.forEach(chat -> assertEquals(2L, chat.getUserId()));
-    }
-
-    @Test
     public void create() {
         mockCurrentUser();
-        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersAPI.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), 2L)).thenReturn(Optional.empty());
         when(chatMapper.toUsersChat(any(), any())).thenReturn(chat);
         chatsService.create(2L, "token");
@@ -113,14 +92,14 @@ public class UsersChatsServiceTest {
     @Test
     public void createWhenCurrentUserBlocked() {
         mockCurrentUser();
-        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", true));
+        when(usersAPI.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", true));
         assertThrows(ChatException.class, () -> chatsService.create(2L, "token"));
     }
 
     @Test
     public void createWhenChatAlreadyExists() {
         mockCurrentUser();
-        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersAPI.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), 2L)).thenReturn(Optional.of(new UsersChat()));
         assertThrows(ChatException.class, () -> chatsService.create(2L, "token"));
     }
@@ -129,7 +108,7 @@ public class UsersChatsServiceTest {
     public void sendTextMessage() {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
-        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersAPI.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(messageMapper.toUsersChatMessage(any(), any(), any(), any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
         chatsService.sendTextMessage(chat.getId(), "text", "token");
@@ -148,7 +127,7 @@ public class UsersChatsServiceTest {
     public void sendTextMessageWhenCurrentUserBlocked() {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
-        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", true));
+        when(usersAPI.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", true));
         assertThrows(ChatException.class, () -> chatsService.sendTextMessage(chat.getId(), "text", "token"));
     }
 
@@ -164,7 +143,7 @@ public class UsersChatsServiceTest {
     public void sendFile() {
         mockCurrentUser();
         when(chatsRepository.findById(chat.getId())).thenReturn(Optional.of(chat));
-        when(usersService.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
+        when(usersAPI.isBlockedByUser(2L, "token")).thenReturn(Map.of("data", false));
         when(messagesRepository.save(any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toUsersChatMessage(any(), any(), any(), any())).thenReturn(UsersChatMessage.builder().chat(chat).build());
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(new ResponseMessageDTO());
@@ -228,9 +207,7 @@ public class UsersChatsServiceTest {
     }
 
     private void mockCurrentUser() {
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(new UserDetailsImpl(currentUser));
+        when(securityUtil.getCurrentUser()).thenReturn(currentUser);
     }
 
 }

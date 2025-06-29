@@ -9,6 +9,7 @@ import danix.app.chats_service.util.ErrorData;
 import danix.app.chats_service.util.RequestException;
 import feign.codec.ErrorDecoder;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,9 +21,10 @@ import java.util.Map;
 
 @Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class FeignConfig {
 
-	private static final ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper;
 
 	@Bean
 	public ErrorDecoder errorDecoder() {

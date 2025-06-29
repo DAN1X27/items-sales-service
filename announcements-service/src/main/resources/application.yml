@@ -9,6 +9,12 @@ spring:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
       group-id: ${kafka.group-id}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${jwt.issuer-uri}
+          jwk-set-uri: ${jwt.jwk-set-uri}
   cloud:
     config:
       uri: ${config_uri}
@@ -27,6 +33,9 @@ spring:
     multipart:
       max-file-size: ${max_file_size}
       max-request-size: ${max_file_size}
+jwt:
+  principal-attribute: ${jwt.principal-attribute}
+  resource-id: ${jwt.resource-id}
 springdoc:
   api-docs:
     enabled: true

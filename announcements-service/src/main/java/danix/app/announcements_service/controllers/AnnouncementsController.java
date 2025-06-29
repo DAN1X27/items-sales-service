@@ -1,9 +1,11 @@
 package danix.app.announcements_service.controllers;
 
 import danix.app.announcements_service.dto.*;
-import danix.app.announcements_service.security.User;
+import danix.app.announcements_service.util.SecurityUtil;
+import danix.app.announcements_service.models.User;
 import danix.app.announcements_service.services.AnnouncementsService;
 import danix.app.announcements_service.util.*;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static danix.app.announcements_service.security.UserDetailsServiceImpl.getCurrentUser;
-import static danix.app.announcements_service.security.UserDetailsServiceImpl.isAuthenticated;
-
 @Slf4j
 @RestController
 @Tag(name = "Announcements API")
@@ -34,6 +33,8 @@ public class AnnouncementsController {
 
     private final AnnouncementsService announcementsService;
 
+    private final SecurityUtil securityUtil;
+
     @GetMapping
     public ResponseEntity<List<ResponseAnnouncementDTO>> findAll(@RequestParam int page, @RequestParam int count,
                @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam(required = false) String city,
@@ -41,8 +42,8 @@ public class AnnouncementsController {
                @RequestParam(defaultValue = "ID", name = "sort_type") SortType sortType,
                @RequestParam(defaultValue = "DESC", name = "sort_direction") Sort.Direction sortDirection) {
         SortData sortData = new SortData(sortType, sortDirection);
-        if (isAuthenticated()) {
-            User user = getCurrentUser();
+        if (securityUtil.isAuthenticated()) {
+            User user = securityUtil.getCurrentUser();
             return new ResponseEntity<>(announcementsService.findAll(page, count, currency, filters, sortData,
                     user.getCountry(), user.getCity()), HttpStatus.OK);
         } else if (city == null) {
@@ -63,8 +64,8 @@ public class AnnouncementsController {
                 @RequestParam(defaultValue = "ID", name = "sort_type") SortType sortType,
                 @RequestParam(defaultValue = "DESC", value = "sort_direction") Sort.Direction sortDirection) {
         SortData sortData = new SortData(sortType, sortDirection);
-        if (isAuthenticated()) {
-            User user = getCurrentUser();
+        if (securityUtil.isAuthenticated()) {
+            User user = securityUtil.getCurrentUser();
             return new ResponseEntity<>(announcementsService.findByTitle(page, count, title, currency, filters, sortData,
                     user.getCountry(), user.getCity()), HttpStatus.OK);
         } else if (city == null) {
@@ -175,6 +176,7 @@ public class AnnouncementsController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @Hidden
     @DeleteMapping("/expired")
     public ResponseEntity<HttpStatus> deleteExpiredAnnouncements() {
         announcementsService.deleteExpired();

@@ -1,30 +1,31 @@
 # DESCRIPTION
-```
 Service for selling items using announcements on Java Spring Boot, Spring Cloud.
-```
 # LAUNCH
-```
-Update username and password for config in each service to your data, use command 'docker-compose up --build' in db, 
-eureka-server, config-server and kafka, and use command 'docker network create items-sales-service-net'.
+Set username and password for config server in each service to your data, set username 'spring.mail.username' and 
+'spring.mail.password' in email-sender-service to your data.
+Use command 'docker-compose up --build' in db, 
+eureka-server, config-server, keycloak and kafka, and use command 'docker network create items-sales-service-net'.
 After these services are started, use this command for other services.
-```
 # ENDPOINTS
-```
 Use http://localhost:8080 for all requests.
-All endpoints except login, registration and reset password require header 'Authorization': 'Bearer {your token}'
-```
-### For more info open http://localhost:8080/swagger-ui/index.html
+All endpoints except login, registration and reset password require header 'Authorization': 'Bearer {access token}'
+### For more info open http://localhost:8080/swagger-ui/index.html after starting all services
 ## 1. AUTHENTICATION
 ### POST: /auth/login
 ```
-Login user and returns jwt-token.
+Login user and returns 'access_token' and 'refresh_token'.
 ```
 #### REQUEST EXAMPLE:
 ```json
 "request": {
-  "email": "email",
+  "username": "${username or email}",
   "password": "password"
 }
+```
+### POST: /auth/refresh-token?refresh_token={refresh_token}
+```
+Returns new access token.
+Accepts 'refresh_token' in request param.
 ```
 ### POST: /auth/registration
 ```
@@ -35,9 +36,11 @@ Sends registration code to user by email.
 {
   "email": "email",
   "username": "username",
-  "password": "password"      
+  "password": "password",
+  "first_name":  "first_name",
+  "last_name": "last_name",
   "city": "city",
-  "country": "country"
+  "country": "country",
 }
 ```
 ### POST: /auth/registration/confirm
@@ -96,6 +99,7 @@ Validate email code and update email.
 ### POST: /auth/logout
 ```
 Logout user.
+Accepts 'refresh_token' in request param.
 ```
 ## 2. USER
 ### GET: /users/{id}

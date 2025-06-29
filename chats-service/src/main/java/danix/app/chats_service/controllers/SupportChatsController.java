@@ -30,8 +30,8 @@ public class SupportChatsController {
 	private final SupportChatsService chatService;
 
 	@GetMapping("/user")
-	public List<ResponseSupportChatDTO> findAllByUser() {
-		return chatService.getUserChats();
+	public List<ResponseSupportChatDTO> findAllByUser(@RequestParam int page, @RequestParam int count) {
+		return chatService.getUserChats(page, count);
 	}
 
 	@GetMapping

@@ -14,6 +14,10 @@ public class UserInfoDTO {
 
 	private String email;
 
+	private String firstName;
+
+	private String lastName;
+
 	private Double grade;
 
 	@JsonProperty("grades_count")

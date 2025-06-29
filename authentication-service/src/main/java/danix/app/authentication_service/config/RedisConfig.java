@@ -1,5 +1,6 @@
 package danix.app.authentication_service.config;
 
+import danix.app.authentication_service.services.AuthenticationService;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -64,11 +65,14 @@ public class RedisConfig {
     }
 
     @Bean
-    MessageListener deletedEmailKeysListener(RedisTemplate<String, Object> redisTemplate) {
+    MessageListener deletedEmailKeysListener(RedisTemplate<String, Object> redisTemplate,
+                                             AuthenticationService authenticationService) {
         return ((message, pattern) -> {
             String key = message.toString();
             if (key.startsWith("email_keys")) {
                 redisTemplate.opsForSet().remove("email_keys", key);
+                String email = key.split(":")[1];
+                authenticationService.deleteUser(email);
             }
         });
     }

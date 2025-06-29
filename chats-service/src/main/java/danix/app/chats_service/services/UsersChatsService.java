@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface UsersChatsService extends ChatsService {
 
-    List<ResponseUsersChatDTO> getUserChats();
+    List<ResponseUsersChatDTO> getUserChats(int page, int count);
 
     DataDTO<Long> create(long userId, String token);
 }

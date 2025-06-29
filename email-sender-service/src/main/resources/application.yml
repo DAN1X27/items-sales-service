@@ -1,5 +1,5 @@
 server:
-  port: 7075
+  port: 6565
 spring:
   application:
     name: 'email-sender-service'

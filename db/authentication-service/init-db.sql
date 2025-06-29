@@ -1,1 +1,0 @@
-CREATE DATABASE authentication_service_db;

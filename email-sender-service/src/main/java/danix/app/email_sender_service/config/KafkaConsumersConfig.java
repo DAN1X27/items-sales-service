@@ -1,6 +1,6 @@
 package danix.app.email_sender_service.config;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import danix.app.email_sender_service.dto.EmailMessageDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +23,7 @@ public class KafkaConsumersConfig {
 	@Value("${spring.kafka.consumer.group-id}")
 	private String groupId;
 
-	private ConsumerFactory<String, Map<String, String>> consumerFactory() {
+	private ConsumerFactory<String, EmailMessageDTO> consumerFactory() {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
 		props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
@@ -34,13 +34,13 @@ public class KafkaConsumersConfig {
 		return new DefaultKafkaConsumerFactory<>(
 				props,
 				new StringDeserializer(),
-				new JsonDeserializer<>(new TypeReference<>() {})
+				new JsonDeserializer<>(EmailMessageDTO.class)
 		);
 	}
 
 	@Bean
-	public ConcurrentKafkaListenerContainerFactory<String, Map<String, String>> messageFactory() {
-		var factory = new ConcurrentKafkaListenerContainerFactory<String, Map<String, String>>();
+	public ConcurrentKafkaListenerContainerFactory<String, EmailMessageDTO> messageFactory() {
+		var factory = new ConcurrentKafkaListenerContainerFactory<String, EmailMessageDTO>();
 		factory.setConsumerFactory(consumerFactory());
 		return factory;
 	}

@@ -1,15 +1,15 @@
 package danix.app.users_service.controllers;
 
 import danix.app.users_service.dto.*;
-import danix.app.users_service.models.User;
+import danix.app.users_service.util.SecurityUtil;
 import danix.app.users_service.services.UsersService;
 import danix.app.users_service.util.*;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +19,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static danix.app.users_service.services.impl.UsersServiceImpl.getCurrentUser;
 
 @RestController
 @Tag(name = "Users API")
@@ -32,7 +30,9 @@ public class UsersController {
 
 	private final RegistrationValidator registrationValidator;
 
-	private final PasswordEncoder passwordEncoder;
+	private final UpdateInfoValidator updateInfoValidator;
+
+	private final SecurityUtil securityUtil;
 
 	@GetMapping("/{id}")
 	public ResponseEntity<ResponseUserDTO> findById(@PathVariable Long id) {
@@ -50,11 +50,13 @@ public class UsersController {
 		return new ResponseEntity<>(usersService.getInfo(), HttpStatus.OK);
 	}
 
+	@Hidden
 	@GetMapping("/{id}/email")
 	public ResponseEntity<DataDTO<String>> getUserEmail(@PathVariable long id) {
 		return new ResponseEntity<>(new DataDTO<>(usersService.getById(id).getEmail()), HttpStatus.OK);
 	}
 
+	@Hidden
 	@PostMapping("/registration")
 	public ResponseEntity<HttpStatus> temporalRegistration(@RequestBody RegistrationDTO registrationDTO,
 														   BindingResult bindingResult) {
@@ -64,14 +66,10 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
+	@Hidden
 	@PatchMapping("/registration/confirm")
 	public ResponseEntity<DataDTO<Long>> registrationConfirm(@RequestParam String email) {
 		return new ResponseEntity<>(usersService.registrationConfirm(email), HttpStatus.OK);
-	}
-
-	@GetMapping("/authentication")
-	public ResponseEntity<AuthenticationDTO> getUserAuthentication(@RequestParam String email) {
-		return new ResponseEntity<>(usersService.getAuthentication(email), HttpStatus.OK);
 	}
 
 	@DeleteMapping
@@ -80,34 +78,24 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@PatchMapping
-	public ResponseEntity<HttpStatus> updateInfo(@RequestBody UpdateInfoDTO updateInfoDTO) {
+	@Hidden
+	@DeleteMapping("/{id}")
+	public ResponseEntity<HttpStatus> delete(@PathVariable Long id) {
+		usersService.delete(id);
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	@PutMapping
+	public ResponseEntity<HttpStatus> updateInfo(@RequestBody @Valid UpdateInfoDTO updateInfoDTO,
+												 BindingResult bindingResult) {
+		handleRequestErrors(bindingResult);
+		updateInfoValidator.validate(updateInfoDTO, bindingResult);
+		handleRequestErrors(bindingResult);
 		usersService.updateInfo(updateInfoDTO);
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@PatchMapping("/password/reset")
-	public ResponseEntity<HttpStatus> resetPassword(@RequestParam String email, @RequestParam String password) {
-		User user = usersService.getByEmail(email);
-		usersService.updatePassword(user, password);
-		return new ResponseEntity<>(HttpStatus.OK);
-	}
-
-	@PatchMapping("/password")
-	public ResponseEntity<HttpStatus> updatePassword(@RequestBody @Valid UpdatePasswordDTO updatePasswordDTO,
-			BindingResult bindingResult) {
-		handleRequestErrors(bindingResult);
-		User user = usersService.getById(getCurrentUser().getId());
-		if (!passwordEncoder.matches(updatePasswordDTO.getOldPassword(), user.getPassword())) {
-			throw new UserException("Incorrect password");
-		}
-		if (passwordEncoder.matches(updatePasswordDTO.getNewPassword(), user.getPassword())) {
-			throw new UserException("The new password must be different from the old one");
-		}
-		usersService.updatePassword(user, passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
-		return new ResponseEntity<>(HttpStatus.OK);
-	}
-
+	@Hidden
 	@PatchMapping("/email")
 	public ResponseEntity<HttpStatus> updateEmail(@RequestParam String email) {
 		usersService.updateEmail(email);
@@ -122,7 +110,7 @@ public class UsersController {
 
 	@GetMapping("/avatar")
 	public ResponseEntity<?> downloadAvatar() {
-		return usersService.getAvatar(getCurrentUser().getId());
+		return usersService.getAvatar(securityUtil.getCurrentUser().getId());
 	}
 
 	@GetMapping("/{id}/avatar")
@@ -182,6 +170,12 @@ public class UsersController {
 		return new ResponseEntity<>(usersService.getBannedUsers(page, count), HttpStatus.OK);
 	}
 
+	@Hidden
+	@GetMapping("is-banned")
+	public ResponseEntity<Map<String, Object>> isUserBanned(@RequestParam String username) {
+		return new ResponseEntity<>(usersService.isBanned(username), HttpStatus.OK);
+	}
+
 	@PostMapping("/{id}/ban")
 	public ResponseEntity<HttpStatus> ban(@PathVariable Long id, @RequestBody @Valid CauseDTO causeDTO,
 			 BindingResult bindingResult) {
@@ -190,7 +184,7 @@ public class UsersController {
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 
-	@DeleteMapping("/{id}/unban")
+	@PatchMapping("/{id}/unban")
 	public ResponseEntity<HttpStatus> unban(@PathVariable Long id) {
 		usersService.unbanUser(id);
 		return new ResponseEntity<>(HttpStatus.OK);
@@ -218,6 +212,7 @@ public class UsersController {
 		return new ResponseEntity<>(usersService.isBlockedByUser(id), HttpStatus.OK);
 	}
 
+	@Hidden
 	@DeleteMapping("/temp")
 	public ResponseEntity<HttpStatus> deleteTempUser(@RequestParam String email) {
 		usersService.deleteTempUser(email);

@@ -11,11 +11,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,13 +24,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JWTFilter jwtFilter;
-
     @Value("${access_key}")
     private String accessKey;
 
     @Value("${allowed_origins}")
     private List<String> allowedOrigins;
+
+    private final JwtAuthConverter authConverter;
 
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
@@ -45,16 +42,19 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS)
                         .permitAll()
-                        .requestMatchers("/users/registration", "/users/registration/confirm", "/users/authentication",
-                                "/users/password/reset", "/users/{id}/email", "/users/email", "/users/temp")
+                        .requestMatchers("/users/registration", "/users/registration/confirm", "/users/{id}/email",
+                                "/users/email", "/users/temp", "/users/is-banned")
+                        .access(accessKeyAuthManager())
+                        .requestMatchers(HttpMethod.DELETE, "/users/{id}")
                         .access(accessKeyAuthManager())
                         .requestMatchers("/users/reports", "/users/report/", "/users/{id}/ban", "/users/{id}/unban",
                                 "/users/banned")
                         .hasRole("ADMIN")
                         .anyRequest()
                         .hasAnyRole("USER", "ADMIN"))
+                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> jwt
+                        .jwtAuthenticationConverter(authConverter)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -70,7 +70,8 @@ public class SecurityConfig {
         return source;
     }
 
-    private AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
+    @Bean
+    AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
         return (authentication, object) -> {
             String accessKey = object.getRequest().getParameter("access_key");
             if (accessKey == null || !accessKey.equals(this.accessKey)) {
@@ -78,11 +79,6 @@ public class SecurityConfig {
             }
             return new AuthorizationDecision(true);
         };
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
 }

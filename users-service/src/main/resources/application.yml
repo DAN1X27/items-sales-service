@@ -6,6 +6,16 @@ spring:
     username: ${db.username}
     password: ${db.password}
     url: ${db.url}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${jwt.issuer-uri}
+          jwk-set-uri: ${jwt.jwk-set-uri}
   flyway:
     locations: classpath:db_migration
   servlet:
@@ -18,6 +28,9 @@ spring:
   config:
     import: 'configserver:'
   cloud:
+    openfeign:
+      okhttp:
+        enabled: true
     discovery:
       enabled: true
     config:
@@ -54,6 +67,9 @@ redis:
   password: ${redis.password}
   username: ${redis.username}
   database: ${redis.database}
+jwt:
+  principal-attribute: ${jwt.principal-attribute}
+  resource-id: ${jwt.resource-id}
 management:
   endpoints:
     web:

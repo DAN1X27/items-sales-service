@@ -1,14 +1,14 @@
 package danix.app.chats_service;
 
 import danix.app.chats_service.dto.ResponseMessageDTO;
-import danix.app.chats_service.feign.UsersService;
+import danix.app.chats_service.feign.UsersAPI;
 import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
-import danix.app.chats_service.security.User;
-import danix.app.chats_service.security.UserDetailsImpl;
+import danix.app.chats_service.util.SecurityUtil;
+import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.impl.MessagesServiceImpl;
 import danix.app.chats_service.services.impl.SupportChatsServiceImpl;
 import danix.app.chats_service.util.ChatException;
@@ -21,9 +21,6 @@ import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
@@ -49,7 +46,7 @@ public class SupportChatsServiceTest {
     private MessagesServiceImpl messagesService;
 
     @Mock
-    private UsersService usersService;
+    private UsersAPI usersAPI;
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
@@ -64,10 +61,7 @@ public class SupportChatsServiceTest {
     private SupportChatsRepository supportChatsRepository;
 
     @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
+    private SecurityUtil securityUtil;
 
     @InjectMocks
     private SupportChatsServiceImpl supportChatsService;
@@ -208,7 +202,7 @@ public class SupportChatsServiceTest {
         when(messageMapper.toSupportChatMessage(any(), any(), any(), any())).thenReturn(message);
         ResponseMessageDTO messageDTO = new ResponseMessageDTO();
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(messageDTO);
-        when(usersService.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", false));
+        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", false));
         supportChatsService.sendTextMessage(supportChat.getId(), "message", "");
         verify(messagesRepository).save(any());
         verify(messagingTemplate).convertAndSend("/topic/support/" + supportChat.getId(), messageDTO);
@@ -232,7 +226,7 @@ public class SupportChatsServiceTest {
     public void sendMessageWhenCurrentUserBlocked() {
         mockCurrentUser();
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
-        when(usersService.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", true));
+        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", true));
         assertThrows(ChatException.class, () -> supportChatsService
                 .sendTextMessage(supportChat.getId(), "message", ""));
     }
@@ -248,7 +242,7 @@ public class SupportChatsServiceTest {
         when(messageMapper.toSupportChatMessage(any(), any(), any(), any())).thenReturn(message);
         ResponseMessageDTO messageDTO = new ResponseMessageDTO();
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(messageDTO);
-        when(usersService.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", false));
+        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", false));
         supportChatsService.sendFile(supportChat.getId(), testFile, "", ContentType.IMAGE);
         verify(messagesRepository).save(any());
         verify(messagesService).saveFile(eq(testFile), any(), eq(ContentType.IMAGE), any());
@@ -321,9 +315,7 @@ public class SupportChatsServiceTest {
     }
 
     private void mockCurrentUser() {
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(new UserDetailsImpl(currentUser));
+        when(securityUtil.getCurrentUser()).thenReturn(currentUser);
     }
 
 }

@@ -3,13 +3,14 @@ package danix.app.chats_service.services.impl;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.dto.ResponseSupportChatDTO;
-import danix.app.chats_service.feign.UsersService;
+import danix.app.chats_service.feign.UsersAPI;
 import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
-import danix.app.chats_service.security.User;
+import danix.app.chats_service.util.SecurityUtil;
+import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.MessagesService;
 import danix.app.chats_service.services.SupportChatsService;
 import danix.app.chats_service.util.ChatException;
@@ -29,7 +30,6 @@ import java.util.*;
 import static danix.app.chats_service.models.SupportChat.Status.CLOSED;
 import static danix.app.chats_service.models.SupportChat.Status.IN_PROCESSING;
 import static danix.app.chats_service.models.SupportChat.Status.WAIT;
-import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
 import static danix.app.chats_service.util.ContentType.TEXT;
 
 @Slf4j
@@ -45,23 +45,30 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 
 	private final MessagesService messagesService;
 
-	private final UsersService usersService;
+	private final UsersAPI usersAPI;
 
 	private final MessageMapper messageMapper;
 
 	private final ChatMapper chatMapper;
 
-	public List<ResponseSupportChatDTO> getUserChats() {
-		long id = getCurrentUser().getId();
-		return chatMapper.toResponseSupportChatDTOList(chatsRepository.findAllByUserIdOrAdminId(id, id));
+	private final SecurityUtil securityUtil;
+
+	@Override
+	public List<ResponseSupportChatDTO> getUserChats(int page, int count) {
+		long id = securityUtil.getCurrentUser().getId();
+		List<SupportChat> chats = chatsRepository.findAllByUserIdOrAdminId(id, id, PageRequest.of(
+				page, count, Sort.by(Sort.Direction.DESC, "id")));
+		return chatMapper.toResponseSupportChatDTOList(chats);
 	}
 
+	@Override
 	public List<ResponseSupportChatDTO> findAll(int page, int count, Sort.Direction sortDirection) {
 		List<SupportChat> chats = chatsRepository.findAllByStatus(WAIT, PageRequest.of(page, count,
 				Sort.by(sortDirection, "id")));
 		return chatMapper.toResponseSupportChatDTOList(chats);
 	}
 
+	@Override
 	public List<ResponseMessageDTO> getChatMessages(long id, int page, int count) {
 		SupportChat chat = getById(id);
 		checkAccess(chat);
@@ -70,9 +77,10 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		return messageMapper.toResponseMessageDTOList(messages);
 	}
 
+	@Override
 	@Transactional
 	public DataDTO<Long> create(String message) {
-		User user = getCurrentUser();
+		User user = securityUtil.getCurrentUser();
 		List<SupportChat.Status> statuses = List.of(WAIT, IN_PROCESSING);
 		chatsRepository.findByUserIdAndStatusIn(user.getId(), statuses).ifPresent(chat -> {
 			throw new ChatException("You already have active chat");
@@ -83,6 +91,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		return new DataDTO<>(chat.getId());
 	}
 
+	@Override
 	@Transactional
 	public void close(long id) {
 		SupportChat chat = getById(id);
@@ -94,10 +103,11 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		sendUpdatedStatusMessage(chat.getId(), chat.getStatus());
 	}
 
+	@Override
 	@Transactional
 	public void setStatusToWait(long id) {
 		SupportChat chat = getById(id);
-		if (chat.getUserId() != getCurrentUser().getId()) {
+		if (chat.getUserId() != securityUtil.getCurrentUser().getId()) {
 			throw new ChatException("You are not owner of this chat");
 		}
 		switch (chat.getStatus()) {
@@ -108,6 +118,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		sendUpdatedStatusMessage(chat.getId(), chat.getStatus());
 	}
 
+	@Override
 	@Transactional
 	public void setStatusToProcessing(long id) {
 		SupportChat chat = getById(id);
@@ -115,11 +126,12 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 			case CLOSED -> throw new ChatException("Chat is closed");
 			case IN_PROCESSING -> throw new ChatException("Chat is already in processing status");
 		}
-		chat.setAdminId(getCurrentUser().getId());
+		chat.setAdminId(securityUtil.getCurrentUser().getId());
 		chat.setStatus(IN_PROCESSING);
 		sendUpdatedStatusMessage(chat.getId(), chat.getStatus());
 	}
 
+	@Override
 	@Transactional
 	public DataDTO<Long> sendTextMessage(long id, String text, String token) {
 		SupportChatMessage message = saveMessage(id, text, TEXT, token);
@@ -127,6 +139,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		return new DataDTO<>(message.getId());
 	}
 
+	@Override
 	public DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType) {
 		String fileName = messagesService.getFileName(contentType);
 		SupportChatMessage message = saveMessage(chatId, fileName, contentType, token);
@@ -135,6 +148,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		return new DataDTO<>(message.getId());
 	}
 
+	@Override
 	public ResponseEntity<?> getFile(long id, ContentType contentType) {
 		SupportChatMessage message = getMessageById(id);
 		checkAccess(message.getChat());
@@ -142,14 +156,14 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 	}
 
 	private SupportChatMessage saveMessage(long id, String text, ContentType contentType, String token) {
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		SupportChat chat = getById(id);
 		if (chat.getStatus() == CLOSED) {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
 		long userId = chat.getUserId() == currentUser.getId() ? chat.getAdminId() : chat.getUserId();
-		boolean isBlocked = (boolean) usersService.isBlockedByUser(userId, token).get("data");
+		boolean isBlocked = usersAPI.isBlockedByUser(userId, token).get("data");
 		if (isBlocked) {
 			throw new ChatException("User blocked you");
 		}
@@ -158,6 +172,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		return message;
 	}
 
+	@Override
 	@Transactional
 	public void updateMessage(long id, String text) {
 		SupportChatMessage message = getMessageById(id);
@@ -165,6 +180,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		messagesService.updateMessage(message, text, topic);
 	}
 
+	@Override
 	@Transactional
 	public void deleteMessage(long id) {
 		SupportChatMessage message = getMessageById(id);
@@ -172,6 +188,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 		messagesService.deleteMessage(message, topic, () -> messagesRepository.delete(message));
 	}
 
+	@Override
 	@Transactional
 	public void delete(long id) {
 		SupportChat chat = getById(id);
@@ -187,7 +204,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 	private void sendUpdatedStatusMessage(long chatId, SupportChat.Status status) {
 		Map<String, Object> message = Map.of(
 				"updated_status", status,
-				"updater_id", getCurrentUser().getId()
+				"updater_id", securityUtil.getCurrentUser().getId()
 		);
 		messagingTemplate.convertAndSend("/topic/support/" + chatId, message);
 	}
@@ -206,7 +223,7 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 	}
 
 	private void checkAccess(SupportChat chat) {
-		User user = getCurrentUser();
+		User user = securityUtil.getCurrentUser();
 		if (chat.getUserId() != user.getId() && (chat.getAdminId() == null || !chat.getAdminId().equals(user.getId()))) {
 			throw new ChatException("You are not in this chat");
 		}

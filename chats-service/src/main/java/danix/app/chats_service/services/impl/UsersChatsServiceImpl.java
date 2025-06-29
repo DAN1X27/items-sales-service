@@ -3,13 +3,14 @@ package danix.app.chats_service.services.impl;
 import danix.app.chats_service.dto.DataDTO;
 import danix.app.chats_service.dto.ResponseUsersChatDTO;
 import danix.app.chats_service.dto.ResponseMessageDTO;
-import danix.app.chats_service.feign.UsersService;
+import danix.app.chats_service.feign.UsersAPI;
 import danix.app.chats_service.mapper.ChatMapper;
 import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.UsersChatsRepository;
 import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
-import danix.app.chats_service.security.User;
+import danix.app.chats_service.util.SecurityUtil;
+import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.MessagesService;
 import danix.app.chats_service.services.UsersChatsService;
 import danix.app.chats_service.util.ChatException;
@@ -26,8 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-
-import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -38,7 +38,7 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 
 	private final UsersChatsMessagesRepository messagesRepository;
 
-	private final UsersService usersService;
+	private final UsersAPI usersAPI;
 
 	private final SimpMessagingTemplate messagingTemplate;
 
@@ -48,10 +48,13 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 
 	private final ChatMapper chatMapper;
 
+	private final SecurityUtil securityUtil;
+
 	@Override
-	public List<ResponseUsersChatDTO> getUserChats() {
-		User currentUser = getCurrentUser();
-		List<UsersChat> chats = chatsRepository.findAllByUser1IdOrUser2Id(currentUser.getId(), currentUser.getId());
+	public List<ResponseUsersChatDTO> getUserChats(int page, int count) {
+		long id = securityUtil.getCurrentUser().getId();
+		List<UsersChat> chats = chatsRepository.findAllByUser1IdOrUser2Id(id, id,
+				PageRequest.of(page, count, Sort.by(Sort.Direction.DESC, "id")));
 		return chatMapper.toResponseUsersChatDTOList(chats);
 	}
 
@@ -67,7 +70,7 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 	@Override
 	@Transactional
 	public DataDTO<Long> create(long userId, String token) {
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		if (isBlocked(userId, token)) {
 			throw new ChatException("User has blocked you");
 		}
@@ -107,7 +110,7 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 	}
 
 	private UsersChatMessage saveMessage(long chatId, String text, ContentType contentType, String token) {
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		UsersChat chat = chatsRepository.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
 		long userId = chat.getUser1Id() == currentUser.getId() ? chat.getUser2Id() : chat.getUser1Id();
@@ -137,14 +140,15 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 	@Override
 	@Transactional
 	public void delete(long id) {
-		UsersChat chat = chatsRepository.findById(id).orElseThrow(() -> new ChatException("Chat not found"));
+		UsersChat chat = chatsRepository.findById(id)
+				.orElseThrow(() -> new ChatException("Chat not found"));
 		checkUserInChat(chat);
 		messagesService.deleteFiles(
 				page -> messagesRepository.findAllByChatAndContentTypeIsNot(chat, ContentType.TEXT,
 						PageRequest.of(page, 50)),
 				() -> chatsRepository.deleteById(id)
 		);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		long userId = chat.getUser1Id() == currentUser.getId() ? chat.getUser2Id() : chat.getUser1Id();
 		Map<String, Object> response = Map.of("deleted_chat", chat.getId());
 		messagingTemplate.convertAndSend("/topic/user/" + userId + "/main", response);
@@ -152,7 +156,8 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 	}
 
 	private UsersChatMessage getMessageById(long id) {
-		return messagesRepository.findById(id).orElseThrow(() -> new ChatException("Message not found"));
+		return messagesRepository.findById(id)
+				.orElseThrow(() -> new ChatException("Message not found"));
 	}
 
 	private void sendMessageOnTopic(UsersChatMessage message) {
@@ -161,11 +166,12 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 	}
 
 	private boolean isBlocked(long id, String token) {
-		return (boolean) usersService.isBlockedByUser(id, token).get("data");
+		Map<String, Boolean> response = usersAPI.isBlockedByUser(id, token);
+		return Objects.requireNonNull(response).get("data");
 	}
 
 	private void checkUserInChat(UsersChat chat) {
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		if (chat.getUser1Id() != currentUser.getId() && chat.getUser2Id() != currentUser.getId()) {
 			throw new ChatException("You are not in this chat");
 		}
