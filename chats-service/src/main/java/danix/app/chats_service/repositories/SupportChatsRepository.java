@@ -16,7 +16,7 @@ public interface SupportChatsRepository extends JpaRepository<SupportChat, Long>
 
 	Optional<SupportChat> findByUserIdAndStatusIn(long userId, List<SupportChat.Status> statuses);
 
-	List<SupportChat> findAllByUserIdOrAdminId(long userId, long adminId);
+	List<SupportChat> findAllByUserIdOrAdminId(long userId, long adminId, Pageable pageable);
 
 	List<SupportChat> findAllByStatus(SupportChat.Status status, Pageable pageable);
 

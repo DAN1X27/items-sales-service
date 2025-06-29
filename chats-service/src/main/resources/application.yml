@@ -21,6 +21,16 @@ spring:
     url: ${db.url}
     username: ${db.username}
     password: ${db.password}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${jwt.issuer-uri}
+          jwk-set-uri: ${jwt.jwk-set-uri}
 eureka:
   instance:
     instanceId: ${spring.application.name}
@@ -38,6 +48,9 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /chats/swagger-ui/index.html
+jwt:
+  principal-attribute: ${jwt.principal-attribute}
+  resource-id: ${jwt.resource-id}
 allowed_origins: ${allowed_origins}
 access_key: ${access_key}
 server:

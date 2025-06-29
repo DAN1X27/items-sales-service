@@ -13,22 +13,6 @@ services:
     networks:
       - items-sales-service-net
     restart: unless-stopped
-
-  authentication-service_db:
-    image: 'postgres:17-alpine'
-    container_name: authentication-service-db
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - ./authentication-service/db_data:/var/lib/postgresql/data
-      - ./authentication-service/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    ports:
-      - "5434:5432"
-    networks:
-      - items-sales-service-net
-    restart: unless-stopped
-
   announcements-service_db:
     image: 'postgres:17-alpine'
     container_name: announcements-service-db
@@ -43,7 +27,6 @@ services:
     networks:
       - items-sales-service-net
     restart: unless-stopped
-
   chats-service_db:
     image: 'postgres:17-alpine'
     container_name: chats-service-db

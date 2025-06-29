@@ -1,8 +1,9 @@
 package danix.app.chats_service.services.impl;
 
-import danix.app.chats_service.feign.FilesService;
+import danix.app.chats_service.feign.FilesAPI;
 import danix.app.chats_service.models.Message;
-import danix.app.chats_service.security.User;
+import danix.app.chats_service.util.SecurityUtil;
+import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.MessagesService;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
@@ -23,16 +24,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
-import static danix.app.chats_service.security.UserDetailsServiceImpl.getCurrentUser;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MessagesServiceImpl implements MessagesService {
 
-	private final FilesService filesService;
+	private final FilesAPI filesAPI;
 
 	private final SimpMessagingTemplate messagingTemplate;
+
+	private final SecurityUtil securityUtil;
 
 	private final KafkaTemplate<String, List<String>> kafkaTemplate;
 
@@ -48,14 +49,14 @@ public class MessagesServiceImpl implements MessagesService {
 					throw new ChatException("Message is not image");
 				}
 				mediaType = MediaType.IMAGE_JPEG;
-				yield filesService.downloadImage(message.getText(), accessKey);
+				yield filesAPI.downloadImage(message.getText(), accessKey);
 			}
 			case VIDEO -> {
 				if (message.getContentType() != ContentType.VIDEO) {
 					throw new ChatException("Message is not video");
 				}
 				mediaType = MediaType.parseMediaType("video/mp4");
-				yield filesService.downloadVideo(message.getText(), accessKey);
+				yield filesAPI.downloadVideo(message.getText(), accessKey);
 			}
 			default -> throw new IllegalArgumentException("Invalid content type");
 		};
@@ -68,8 +69,8 @@ public class MessagesServiceImpl implements MessagesService {
 	public void saveFile(MultipartFile file, Message message, ContentType contentType, Runnable delete) {
 		try {
 			switch (contentType) {
-				case IMAGE -> filesService.saveImage(file, message.getText(), accessKey);
-				case VIDEO -> filesService.saveVideo(file, message.getText(), accessKey);
+				case IMAGE -> filesAPI.saveImage(file, message.getText(), accessKey);
+				case VIDEO -> filesAPI.saveVideo(file, message.getText(), accessKey);
 				default -> throw new IllegalArgumentException("Invalid content type");
 			}
 		}
@@ -81,7 +82,7 @@ public class MessagesServiceImpl implements MessagesService {
 
 	@Override
 	public void updateMessage(Message message, String text, String topic) {
-		User user = getCurrentUser();
+		User user = securityUtil.getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");
 		}
@@ -96,14 +97,14 @@ public class MessagesServiceImpl implements MessagesService {
 
 	@Override
 	public void deleteMessage(Message message, String topic, Runnable delete) {
-		User user = getCurrentUser();
+		User user = securityUtil.getCurrentUser();
 		if (message.getSenderId() != user.getId()) {
 			throw new ChatException("You are not owner of this message");
 		}
 		delete.run();
 		switch (message.getContentType()) {
-			case IMAGE -> filesService.deleteImage(message.getText(), accessKey);
-			case VIDEO -> filesService.deleteVideo(message.getText(), accessKey);
+			case IMAGE -> filesAPI.deleteImage(message.getText(), accessKey);
+			case VIDEO -> filesAPI.deleteVideo(message.getText(), accessKey);
 		}
 		messagingTemplate.convertAndSend(topic, Map.of("deleted_message", message.getId()));
 	}

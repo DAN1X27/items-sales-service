@@ -1,5 +1,7 @@
 package danix.app.authentication_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import danix.app.authentication_service.util.StartsWithCapitalLater;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,5 +26,15 @@ public class RegistrationDTO {
 
 	@NotBlank(message = "City must not be empty")
 	private String city;
+
+	@JsonProperty("first_name")
+	@NotBlank(message = "First name must not be empty")
+	@StartsWithCapitalLater(message = "First name must starts with a capital letter")
+	private String firstName;
+
+	@JsonProperty("last_name")
+	@NotBlank(message = "Last name must not be empty")
+	@StartsWithCapitalLater(message = "Last name must starts with a capital letter")
+	private String lastName;
 
 }

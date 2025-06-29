@@ -1,6 +1,6 @@
 package danix.app.tasks_service.tasks;
 
-import danix.app.tasks_service.feign.AnnouncementsService;
+import danix.app.tasks_service.feign.AnnouncementsAPI;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DeleteExpiredAnnouncementsTask {
 
-    private final AnnouncementsService announcementsService;
+    private final AnnouncementsAPI announcementsAPI;
 
     @Value("${access_key}")
     private String accessKey;
@@ -21,7 +21,7 @@ public class DeleteExpiredAnnouncementsTask {
     public void run() {
         log.info("Start deleting expired announcements...");
         try {
-            announcementsService.deleteExpiredAnnouncements(accessKey);
+            announcementsAPI.deleteExpiredAnnouncements(accessKey);
             log.info("Expired announcements successfully deleted.");
         }
         catch (Exception e) {

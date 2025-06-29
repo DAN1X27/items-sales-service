@@ -12,6 +12,10 @@ public class ResponseUserDTO {
 
 	private String username;
 
+	private String firstName;
+
+	private String lastName;
+
 	private Double grade;
 
 	@JsonProperty("grades_count")

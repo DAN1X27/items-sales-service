@@ -14,7 +14,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -27,7 +26,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final JWTFilter jwtFilter;
+    private final JwtAuthConverter authConverter;
 
     @Value("${access_key}")
     private String accessKey;
@@ -54,8 +53,9 @@ public class SecurityConfig {
                         .access(accessKeyAuthManager())
                         .anyRequest()
                         .hasAnyRole("USER", "ADMIN"))
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(authConverter)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -71,7 +71,8 @@ public class SecurityConfig {
         return source;
     }
 
-    private AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
+    @Bean
+    AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
         return (authentication, object) -> {
             String accessKey = object.getRequest().getParameter("access_key");
             if (accessKey == null || !accessKey.equals(this.accessKey)) {

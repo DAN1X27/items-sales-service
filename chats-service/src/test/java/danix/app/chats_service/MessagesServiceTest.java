@@ -1,10 +1,10 @@
 package danix.app.chats_service;
 
-import danix.app.chats_service.feign.FilesService;
+import danix.app.chats_service.feign.FilesAPI;
 import danix.app.chats_service.models.UsersChatMessage;
 import danix.app.chats_service.models.Message;
-import danix.app.chats_service.security.User;
-import danix.app.chats_service.security.UserDetailsImpl;
+import danix.app.chats_service.util.SecurityUtil;
+import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.impl.MessagesServiceImpl;
 import danix.app.chats_service.util.ChatException;
 import danix.app.chats_service.util.ContentType;
@@ -15,9 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,13 +34,10 @@ public class MessagesServiceTest {
     private SimpMessagingTemplate messagingTemplate;
 
     @Mock
-    private FilesService filesService;
+    private FilesAPI filesAPI;
 
     @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
+    private SecurityUtil securityUtil;
 
     @Mock
     private Runnable deleteFunction;
@@ -76,14 +70,14 @@ public class MessagesServiceTest {
     public void getFileWhenContentTypeImage() {
         testMessage.setContentType(ContentType.IMAGE);
         messagesService.getFile(testMessage, ContentType.IMAGE);
-        verify(filesService).downloadImage(testMessage.getText(), accessKey);
+        verify(filesAPI).downloadImage(testMessage.getText(), accessKey);
     }
 
     @Test
     public void getFileWhenContentTypeVideo() {
         testMessage.setContentType(ContentType.VIDEO);
         messagesService.getFile(testMessage, ContentType.VIDEO);
-        verify(filesService).downloadVideo(testMessage.getText(), accessKey);
+        verify(filesAPI).downloadVideo(testMessage.getText(), accessKey);
     }
 
     @Test
@@ -104,13 +98,13 @@ public class MessagesServiceTest {
     @Test
     public void saveImage() {
         messagesService.saveFile(testFile, testMessage, ContentType.IMAGE, deleteFunction);
-        verify(filesService).saveImage(testFile, testMessage.getText(), accessKey);
+        verify(filesAPI).saveImage(testFile, testMessage.getText(), accessKey);
     }
 
     @Test
     public void saveVideo() {
         messagesService.saveFile(testFile, testMessage, ContentType.VIDEO, deleteFunction);
-        verify(filesService).saveVideo(testFile, testMessage.getText(), accessKey);
+        verify(filesAPI).saveVideo(testFile, testMessage.getText(), accessKey);
     }
 
     @Test
@@ -122,7 +116,7 @@ public class MessagesServiceTest {
 
     @Test
     public void saveImageWhenExceptionInFilesService() {
-        doThrow(new RuntimeException()).when(filesService).saveImage(testFile, testMessage.getText(), accessKey);
+        doThrow(new RuntimeException()).when(filesAPI).saveImage(testFile, testMessage.getText(), accessKey);
         try {
             messagesService.saveFile(testFile, testMessage, ContentType.IMAGE, deleteFunction);
         } catch (Exception e) {
@@ -173,7 +167,7 @@ public class MessagesServiceTest {
         testMessage.setContentType(ContentType.IMAGE);
         messagesService.deleteMessage(testMessage, "topic", deleteFunction);
         verify(deleteFunction).run();
-        verify(filesService).deleteImage(testMessage.getText(), accessKey);
+        verify(filesAPI).deleteImage(testMessage.getText(), accessKey);
         verify(messagingTemplate).convertAndSend(eq("topic"), any(Map.class));
     }
 
@@ -183,7 +177,7 @@ public class MessagesServiceTest {
         testMessage.setContentType(ContentType.VIDEO);
         messagesService.deleteMessage(testMessage, "topic", deleteFunction);
         verify(deleteFunction).run();
-        verify(filesService).deleteVideo(testMessage.getText(), accessKey);
+        verify(filesAPI).deleteVideo(testMessage.getText(), accessKey);
         verify(messagingTemplate).convertAndSend(eq("topic"), any(Map.class));
     }
 
@@ -195,9 +189,7 @@ public class MessagesServiceTest {
     }
 
     private void mockCurrentUser() {
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(new UserDetailsImpl(currentUser));
+        when(securityUtil.getCurrentUser()).thenReturn(currentUser);
     }
 
 }

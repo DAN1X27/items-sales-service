@@ -1,16 +1,14 @@
 package danix.app.announcements_service;
 
 import danix.app.announcements_service.dto.*;
-import danix.app.announcements_service.feign.CurrencyConverterAPI;
-import danix.app.announcements_service.feign.FilesService;
-import danix.app.announcements_service.feign.UsersService;
+import danix.app.announcements_service.feign.FilesAPI;
+import danix.app.announcements_service.feign.UsersAPI;
 import danix.app.announcements_service.mapper.AnnouncementMapper;
 import danix.app.announcements_service.mapper.ReportMapper;
 import danix.app.announcements_service.models.*;
 import danix.app.announcements_service.repositories.*;
-import danix.app.announcements_service.security.User;
-import danix.app.announcements_service.security.UserDetailsImpl;
-import danix.app.announcements_service.services.AnnouncementsService;
+import danix.app.announcements_service.util.SecurityUtil;
+import danix.app.announcements_service.models.User;
 import danix.app.announcements_service.services.CurrencyConverterService;
 import danix.app.announcements_service.services.impl.AnnouncementsServiceImpl;
 import danix.app.announcements_service.util.AnnouncementException;
@@ -23,10 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -58,13 +52,13 @@ class AnnouncementsServiceTests {
     private ReportsRepository reportsRepository;
 
     @Mock
-    private FilesService filesService;
+    private FilesAPI filesAPI;
 
     @Mock
     private CurrencyConverterService currencyConverterService;
 
     @Mock
-    private UsersService usersService;
+    private UsersAPI usersAPI;
 
     @Mock
     private KafkaTemplate<String, List<String>> listKafkaTemplate;
@@ -79,13 +73,7 @@ class AnnouncementsServiceTests {
     private ReportMapper reportMapper;
 
     @Mock
-    private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
-
-    @Mock
-    private AnonymousAuthenticationToken anonymousToken;
+    private SecurityUtil securityUtil;
 
     @InjectMocks
     private AnnouncementsServiceImpl announcementsService;
@@ -118,7 +106,7 @@ class AnnouncementsServiceTests {
         MultipartFile image = new MockMultipartFile("test", new byte[]{});
         ReflectionTestUtils.setField(announcementsService, "maxImagesCount", 10);
         announcementsService.addImage(image, announcement.getId());
-        verify(filesService).saveImage(any(), any(), any());
+        verify(filesAPI).saveImage(any(), any(), any());
         verify(imagesRepository).save(any());
     }
 
@@ -162,7 +150,7 @@ class AnnouncementsServiceTests {
         when(imagesRepository.findById(image.getId())).thenReturn(Optional.of(image));
         mockCurrentUser();
         announcementsService.deleteImage(image.getId());
-        verify(filesService).deleteImage(any(), any());
+        verify(filesAPI).deleteImage(any(), any());
         verify(imagesRepository).delete(image);
     }
 
@@ -245,6 +233,7 @@ class AnnouncementsServiceTests {
         when(watchesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
         when(announcementMapper.toShowDTO(announcement, USD)).thenReturn(new ShowAnnouncementDTO());
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.empty());
+        when(securityUtil.isAuthenticated()).thenReturn(true);
         ReflectionTestUtils.setField(announcementsService, "storageDays", 30);
         ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), USD);
         verify(watchesRepository).save(any(Watch.class));
@@ -261,14 +250,14 @@ class AnnouncementsServiceTests {
         when(watchesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Watch()));
         when(announcementMapper.toShowDTO(announcement, USD)).thenReturn(new ShowAnnouncementDTO());
         when(likesRepository.findByAnnouncementAndUserId(announcement, testUser.getId())).thenReturn(Optional.of(new Like()));
+        when(securityUtil.isAuthenticated()).thenReturn(true);
         ShowAnnouncementDTO showDTO = announcementsService.show(announcement.getId(), USD);
         assertTrue(showDTO.isLiked());
     }
 
     @Test
     public void showWhenUserDoesNotAuthenticated() {
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(anonymousToken);
+        when(securityUtil.isAuthenticated()).thenReturn(false);
         Announcement announcement = getTestAnnouncement();
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         when(announcementMapper.toShowDTO(announcement, USD)).thenReturn(new ShowAnnouncementDTO());
@@ -387,7 +376,7 @@ class AnnouncementsServiceTests {
         IntStream.range(0, 5).forEach(i -> images.add(new Image("test_name", announcement)));
         announcement.setImages(images);
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
-        when(usersService.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
+        when(usersAPI.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
         verify(announcementsRepository).deleteById(announcement.getId());
         verify(listKafkaTemplate).send(eq("deleted_announcement"), any());
@@ -399,7 +388,7 @@ class AnnouncementsServiceTests {
         Announcement announcement = getTestAnnouncement();
         announcement.setImages(Collections.emptyList());
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
-        when(usersService.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
+        when(usersAPI.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
         verify(announcementsRepository).deleteById(announcement.getId());
         verify(listKafkaTemplate, never()).send(eq("deleted_announcements_images"), any());
@@ -482,9 +471,7 @@ class AnnouncementsServiceTests {
     }
 
     private void mockCurrentUser() {
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(new UserDetailsImpl(testUser));
+        when(securityUtil.getCurrentUser()).thenReturn(testUser);
     }
 
 }

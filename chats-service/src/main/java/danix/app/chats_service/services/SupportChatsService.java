@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface SupportChatsService extends ChatsService {
 
-    List<ResponseSupportChatDTO> getUserChats();
+    List<ResponseSupportChatDTO> getUserChats(int page, int count);
 
     List<ResponseSupportChatDTO> findAll(int page, int count, Sort.Direction sortDirection);
 

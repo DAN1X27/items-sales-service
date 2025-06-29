@@ -8,12 +8,13 @@ import danix.app.announcements_service.dto.ResponseReportDTO;
 import danix.app.announcements_service.dto.ShowAnnouncementDTO;
 import danix.app.announcements_service.dto.ShowReportDTO;
 import danix.app.announcements_service.dto.UpdateAnnouncementDTO;
-import danix.app.announcements_service.feign.FilesService;
-import danix.app.announcements_service.feign.UsersService;
+import danix.app.announcements_service.feign.FilesAPI;
+import danix.app.announcements_service.feign.UsersAPI;
 import danix.app.announcements_service.mapper.AnnouncementMapper;
 import danix.app.announcements_service.mapper.ReportMapper;
 import danix.app.announcements_service.models.*;
 import danix.app.announcements_service.repositories.*;
+import danix.app.announcements_service.util.SecurityUtil;
 import danix.app.announcements_service.services.AnnouncementsService;
 import danix.app.announcements_service.services.CurrencyConverterService;
 import danix.app.announcements_service.util.AnnouncementException;
@@ -34,9 +35,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static danix.app.announcements_service.security.UserDetailsServiceImpl.getCurrentUser;
-import static danix.app.announcements_service.security.UserDetailsServiceImpl.isAuthenticated;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -54,9 +52,9 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 
 	private final CurrencyConverterService currencyConverterService;
 
-	private final FilesService filesService;
+	private final FilesAPI filesAPI;
 
-	private final UsersService usersService;
+	private final UsersAPI usersAPI;
 
 	private final KafkaTemplate<String, List<String>> listKafkaTemplate;
 
@@ -65,6 +63,8 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	private final AnnouncementMapper announcementMapper;
 
 	private final ReportMapper reportMapper;
+
+	private final SecurityUtil securityUtil;
 
 	private static final Sort idSort = Sort.by(Sort.Direction.DESC, "id");
 
@@ -131,7 +131,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	public DataDTO<Long> save(CreateAnnouncementDTO createDTO, CurrencyCode currency) {
 		Announcement announcement = announcementMapper.fromCreateDTO(createDTO);
 		announcement.setCreatedAt(LocalDateTime.now());
-		announcement.setOwnerId(getCurrentUser().getId());
+		announcement.setOwnerId(securityUtil.getCurrentUser().getId());
 		announcement.setPrice(currencyConverterService.convertPrice(currency, course -> announcement.getPrice() / course));
 		announcementsRepository.save(announcement);
 		return new DataDTO<>(announcement.getId());
@@ -141,7 +141,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	public byte[] downloadImage(Long id) {
 		Image image = imagesRepository.findById(id)
 				.orElseThrow(() -> new AnnouncementException("Image not found"));
-		return filesService.downloadImage(image.getFileName(), accessKey);
+		return filesAPI.downloadImage(image.getFileName(), accessKey);
 	}
 
 	@Override
@@ -153,7 +153,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 			throw new AnnouncementException("Images limit acceded");
 		}
 		String uuid = UUID.randomUUID() + ".jpg";
-		filesService.saveImage(image, uuid, accessKey);
+		filesAPI.saveImage(image, uuid, accessKey);
 		imagesRepository.save(new Image(uuid, announcement));
 	}
 
@@ -163,7 +163,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 		Image image = imagesRepository.findById(id)
 				.orElseThrow(() -> new AnnouncementException("Image not found"));
 		checkAnnouncementOwner(image.getAnnouncement());
-		filesService.deleteImage(image.getFileName(), accessKey);
+		filesAPI.deleteImage(image.getFileName(), accessKey);
 		imagesRepository.delete(image);
 	}
 
@@ -171,7 +171,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	@Transactional
 	public void addLike(Long id) {
 		Announcement announcement = findById(id);
-		Long userId = getCurrentUser().getId();
+		Long userId = securityUtil.getCurrentUser().getId();
 		likesRepository.findByAnnouncementAndUserId(announcement, userId).ifPresent(like -> {
 			throw new AnnouncementException("Like already exists");
 		});
@@ -183,7 +183,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	@Transactional
 	public void deleteLike(Long id) {
 		Announcement announcement = findById(id);
-		Long userId = getCurrentUser().getId();
+		Long userId = securityUtil.getCurrentUser().getId();
 		likesRepository.findByAnnouncementAndUserId(announcement, userId)
 			.ifPresentOrElse(likesRepository::delete, () -> {
 				throw new AnnouncementException("Like not found");
@@ -197,8 +197,8 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 		Announcement announcement = findById(id);
 		ShowAnnouncementDTO showDTO = announcementMapper.toShowDTO(announcement, currency);
 		showDTO.setExpiredDate(announcement.getCreatedAt().plusDays(storageDays));
-		if (isAuthenticated()) {
-			Long userId = getCurrentUser().getId();
+		if (securityUtil.isAuthenticated()) {
+			Long userId = securityUtil.getCurrentUser().getId();
 			watchesRepository.findByAnnouncementAndUserId(announcement, userId).orElseGet(() -> {
 				announcement.setWatchesCount(announcement.getWatchesCount() + 1);
 				return watchesRepository.save(new Watch(announcement, userId));
@@ -212,7 +212,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	@Transactional
 	public void createReport(Long id, String cause) {
 		Announcement announcement = findById(id);
-		Long userId = getCurrentUser().getId();
+		Long userId = securityUtil.getCurrentUser().getId();
 		reportsRepository.findByAnnouncementAndSenderId(announcement, userId).ifPresent(report -> {
 			throw new AnnouncementException("You already send report to this announcement");
 		});
@@ -365,11 +365,11 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	}
 
 	private String getUserEmail(Long id) {
-		return (String) usersService.getUserEmail(id, accessKey).get("data");
+		return (String) usersAPI.getUserEmail(id, accessKey).get("data");
 	}
 
 	private void checkAnnouncementOwner(Announcement announcement) {
-		if (!announcement.getOwnerId().equals(getCurrentUser().getId())) {
+		if (!announcement.getOwnerId().equals(securityUtil.getCurrentUser().getId())) {
 			throw new AnnouncementException("You are not owner of this announcement");
 		}
 	}

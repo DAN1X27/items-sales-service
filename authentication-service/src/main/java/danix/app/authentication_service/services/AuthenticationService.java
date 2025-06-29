@@ -7,11 +7,19 @@ import java.util.Optional;
 
 public interface AuthenticationService {
 
-    JWTTokenDTO login(LoginDTO loginDTO);
+    TokensDTO login(LoginDTO loginDTO);
 
-    void sendRegistrationKey(RegistrationDTO registrationDTO);
+    void logout(String refreshToken);
 
-    JWTTokenDTO confirmRegistration(RegistrationEmailKeyDTO emailKeyDTO);
+    void disableUser(String email);
+
+    void enableUser(String email);
+
+    void tempRegistration(RegistrationDTO registrationDTO);
+
+    void confirmRegistration(RegistrationEmailKeyDTO emailKeyDTO);
+
+    TokensDTO refreshToken(String refreshToken);
 
     void sendResetPasswordKey(String email);
 
@@ -19,18 +27,18 @@ public interface AuthenticationService {
 
     void sendUpdateEmailKey(UpdateEmailDTO updateEmailDTO);
 
-    JWTTokenDTO updateEmail(UpdateEmailKeyDTO emailKeyDTO, String token);
+    void updateEmail(UpdateEmailKeyDTO emailKeyDTO);
 
-    String validateTokenEndGetEmail(String jwtToken);
-
-    void deleteUserTokens();
-
-    void deleteExpiredTokens();
+    void updateUserInfo(UpdateUserInfoDTO updateUserInfoDTO);
 
     Optional<EmailKey> getKey(String email);
 
     void incrementEmailKeyAttempts(EmailKey emailKey);
 
     void deleteEmailKey(EmailKey emailKey);
+
+    void deleteUser();
+
+    void deleteUser(String email);
 
 }

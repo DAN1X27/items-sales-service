@@ -6,14 +6,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 public interface UsersService {
 
-    User getByEmail(String email);
-
     User getById(Long id);
-
-    AuthenticationDTO getAuthentication(String email);
 
     ResponseUserDTO show(Long id);
 
@@ -26,8 +23,6 @@ public interface UsersService {
     DataDTO<Long> registrationConfirm(String email);
 
     void updateInfo(UpdateInfoDTO updateInfoDTO);
-
-    void updatePassword(User user, String password);
 
     void updateEmail(String email);
 
@@ -55,9 +50,13 @@ public interface UsersService {
 
     void banUser(Long id, String cause);
 
+    Map<String, Object> isBanned(String username);
+
     void unbanUser(Long id);
 
     void delete();
+
+    void delete(Long id);
 
     void blockUser(Long id);
 

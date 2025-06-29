@@ -1,15 +1,8 @@
 server:
-  port: 7070
+  port: 6060
 spring:
-  flyway:
-    locations: classpath:db_migration
   application:
     name: 'authentication-service'
-  datasource:
-    driver-class-name: org.postgresql.Driver
-    username: ${db.username}
-    password: ${db.password}
-    url: ${db.url}
   kafka:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
@@ -24,6 +17,12 @@ spring:
     openfeign:
       okhttp:
         enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${jwt.issuer-uri}
+          jwk-set-uri: ${jwt.jwk-set-uri}
 redis:
   host: ${redis.host}
   port: ${redis.port}
@@ -51,7 +50,15 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: ${eureka.server.url}
-jwt_secret: ${jwt_secret}
+keycloak:
+  url: ${keycloak.url}
+  client-id: ${keycloak.client-id}
+  client-secret: ${keycloak.client-secret}
+  admin-client-id: ${keycloak.admin-client-id}
+  admin-client-secret: ${keycloak.admin-client-secret}
+jwt:
+  resource-id: ${jwt.resource-id}
+  principal-attribute: ${jwt.principal-attribute}
 access_key: ${access_key}
 management:
   endpoints:

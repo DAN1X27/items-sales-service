@@ -2,7 +2,7 @@ package danix.app.authentication_service.util;
 
 import danix.app.authentication_service.dto.EmailKeyDTO;
 import danix.app.authentication_service.dto.RegistrationEmailKeyDTO;
-import danix.app.authentication_service.feign.UsersService;
+import danix.app.authentication_service.feign.UsersAPI;
 import danix.app.authentication_service.services.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,9 +15,12 @@ import org.springframework.validation.Validator;
 public class EmailKeyValidator implements Validator {
 
 	private final AuthenticationService authenticationService;
-	private final UsersService usersService;
+
+	private final UsersAPI usersAPI;
+
 	@Value("${access_key}")
 	private String accessKey;
+
 	@Value("${max-email-key-attempts}")
 	private int maxAttempts;
 
@@ -35,7 +38,8 @@ public class EmailKeyValidator implements Validator {
 				if (emailKey.getAttempts() >= maxAttempts) {
 					authenticationService.deleteEmailKey(emailKey);
 					if (keyDTO instanceof RegistrationEmailKeyDTO) {
-						usersService.deleteTempUser(emailKey.getEmail(), accessKey);
+						usersAPI.deleteTempUser(emailKey.getEmail(), accessKey);
+						authenticationService.deleteUser(keyDTO.getEmail());
 					}
 					errors.rejectValue("key", "", "Attempt limit reached");
 				} else {

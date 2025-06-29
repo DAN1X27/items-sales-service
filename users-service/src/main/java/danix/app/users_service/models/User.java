@@ -21,15 +21,16 @@ public class User {
 
 	private String username;
 
-	private String password;
-
 	private String email;
+
+	@Column(name = "first_name")
+	private String firstName;
+
+	@Column(name = "last_name")
+	private String lastName;
 
 	@Column(name = "registered_at")
 	private LocalDateTime registeredAt;
-
-	@Enumerated(EnumType.STRING)
-	private Role role;
 
 	private String avatar;
 
@@ -53,13 +54,5 @@ public class User {
 
 	@OneToMany(mappedBy = "owner")
 	private List<BlockedUser> blockedUsers;
-
-	public enum Role {
-
-		ROLE_USER,
-
-		ROLE_ADMIN
-
-	}
 
 }

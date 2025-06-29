@@ -11,7 +11,4 @@ public class UpdateEmailDTO {
 	@Email(message = "New email must be correct")
 	private String email;
 
-	@NotBlank(message = "Password must not be empty")
-	private String password;
-
 }

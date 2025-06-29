@@ -1,14 +1,34 @@
 package danix.app.users_service.services.impl;
 
-import danix.app.users_service.dto.*;
-import danix.app.users_service.feign.FilesService;
+import danix.app.users_service.dto.DataDTO;
+import danix.app.users_service.dto.EmailMessageDTO;
+import danix.app.users_service.dto.RegistrationDTO;
+import danix.app.users_service.dto.ResponseBannedUserDTO;
+import danix.app.users_service.dto.ResponseCommentDTO;
+import danix.app.users_service.dto.ResponseReportDTO;
+import danix.app.users_service.dto.ResponseUserDTO;
+import danix.app.users_service.dto.UpdateInfoDTO;
+import danix.app.users_service.dto.UserInfoDTO;
+import danix.app.users_service.feign.AuthenticationAPI;
+import danix.app.users_service.feign.FilesAPI;
 import danix.app.users_service.mapper.CommentMapper;
 import danix.app.users_service.mapper.ReportMapper;
 import danix.app.users_service.mapper.UserMapper;
-import danix.app.users_service.models.*;
-import danix.app.users_service.repositories.*;
-import danix.app.users_service.security.UserDetailsImpl;
-import danix.app.users_service.dto.EmailMessageDTO;
+import danix.app.users_service.models.BannedUser;
+import danix.app.users_service.models.BlockedUser;
+import danix.app.users_service.models.Comment;
+import danix.app.users_service.models.Grade;
+import danix.app.users_service.models.Report;
+import danix.app.users_service.models.TempUser;
+import danix.app.users_service.models.User;
+import danix.app.users_service.repositories.BannedUsersRepository;
+import danix.app.users_service.repositories.BlockedUsersRepository;
+import danix.app.users_service.repositories.CommentsRepository;
+import danix.app.users_service.repositories.GradesRepository;
+import danix.app.users_service.repositories.ReportsRepository;
+import danix.app.users_service.repositories.TempUsersRepository;
+import danix.app.users_service.repositories.UsersRepository;
+import danix.app.users_service.util.SecurityUtil;
 import danix.app.users_service.services.UsersService;
 import danix.app.users_service.util.UserException;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +40,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,7 +47,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -40,7 +61,9 @@ public class UsersServiceImpl implements UsersService {
 
 	private final TempUsersRepository tempUsersRepository;
 
-	private final FilesService filesService;
+	private final AuthenticationAPI authenticationAPI;
+
+	private final FilesAPI filesAPI;
 
 	private final CommentsRepository commentsRepository;
 
@@ -62,6 +85,8 @@ public class UsersServiceImpl implements UsersService {
 
 	private final CommentMapper commentMapper;
 
+	private final SecurityUtil securityUtil;
+
 	@Value("${avatar.default}")
 	private String defaultAvatar;
 
@@ -72,28 +97,14 @@ public class UsersServiceImpl implements UsersService {
 	private int tempUsersStorageTime;
 
 	@Override
-	public User getByEmail(String email) {
-		return usersRepository.findByEmail(email).orElseThrow(() -> new UserException("User not found"));
-	}
-
-	@Override
 	public User getById(Long id) {
 		return usersRepository.findById(id).orElseThrow(() -> new UserException("User not found"));
 	}
 
 	@Override
-	public AuthenticationDTO getAuthentication(String email) {
-		User user = getByEmail(email);
-		bannedUsersRepository.findByUser(user).ifPresent(bannedUser -> {
-			throw new UserException("Your account has been banned due to: " + bannedUser.getCause());
-		});
-		return userMapper.toAuthenticationDTO(user);
-	}
-
-	@Override
 	public ResponseUserDTO show(Long id) {
 		User user = getById(id);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		ResponseUserDTO responseUserDTO = userMapper.toResponseUserDTO(user);
 		responseUserDTO.setIsBlocked(blockedUsersRepository
 				.findByOwnerAndUser(currentUser, user).isPresent());
@@ -104,7 +115,7 @@ public class UsersServiceImpl implements UsersService {
 
 	@Override
 	public UserInfoDTO getInfo() {
-		User user = getById(getCurrentUser().getId());
+		User user = getById(securityUtil.getCurrentUser().getId());
 		return userMapper.toUserInfoDTO(user);
 	}
 
@@ -119,7 +130,6 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	public void temporalRegistration(RegistrationDTO registrationDTO) {
 		TempUser tempUser = userMapper.toTempUserFromRegistrationDTO(registrationDTO);
-		tempUser.setRole(User.Role.ROLE_USER);
 		tempUser.setRegisteredAt(LocalDateTime.now());
 		tempUser.setLiveTime(tempUsersStorageTime);
 		tempUsersRepository.save(tempUser);
@@ -128,7 +138,8 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	@Transactional
 	public DataDTO<Long> registrationConfirm(String email) {
-		TempUser tempUser = tempUsersRepository.findById(email).orElseThrow(() -> new UserException("User not found"));
+		TempUser tempUser = tempUsersRepository.findById(email)
+				.orElseThrow(() -> new UserException("User not found"));
 		User user = userMapper.fromTempUser(tempUser);
 		user.setAvatar(defaultAvatar);
 		usersRepository.save(user);
@@ -139,7 +150,7 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	@Transactional
 	public void updateInfo(UpdateInfoDTO updateInfoDTO) {
-		User user = getById(getCurrentUser().getId());
+		User user = getById(securityUtil.getCurrentUser().getId());
 		if (updateInfoDTO.getUsername() != null) {
 			user.setUsername(updateInfoDTO.getUsername());
 		}
@@ -149,18 +160,19 @@ public class UsersServiceImpl implements UsersService {
 		if (updateInfoDTO.getCity() != null) {
 			user.setCity(updateInfoDTO.getCity());
 		}
-	}
-
-	@Override
-	@Transactional
-	public void updatePassword(User user, String password) {
-		user.setPassword(password);
+		if (updateInfoDTO.getFirstName() != null) {
+			user.setFirstName(updateInfoDTO.getFirstName());
+		}
+		if (updateInfoDTO.getLastName() != null) {
+			user.setLastName(updateInfoDTO.getLastName());
+		}
+		authenticationAPI.updateUserInfo(updateInfoDTO, securityUtil.getJwtBearerToken(), accessKey);
 	}
 
 	@Override
 	@Transactional
 	public void updateEmail(String email) {
-		User user = getById(getCurrentUser().getId());
+		User user = getById(securityUtil.getCurrentUser().getId());
 		user.setEmail(email);
 	}
 
@@ -172,20 +184,20 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	@Transactional
 	public void updateAvatar(MultipartFile image) {
-		User user = getById(getCurrentUser().getId());
+		User user = getById(securityUtil.getCurrentUser().getId());
 		String oldAvatar = user.getAvatar();
 		String fileName = UUID.randomUUID() + ".jpg";
 		user.setAvatar(fileName);
-		filesService.uploadAvatar(image, fileName, accessKey);
+		filesAPI.uploadAvatar(image, fileName, accessKey);
 		if (!oldAvatar.equals(defaultAvatar)) {
-			filesService.deleteAvatar(oldAvatar, accessKey);
+			filesAPI.deleteAvatar(oldAvatar, accessKey);
 		}
 	}
 
 	@Override
 	public ResponseEntity<?> getAvatar(Long id) {
 		User user = getById(id);
-		byte[] data = filesService.downloadAvatar(user.getAvatar(), accessKey);
+		byte[] data = filesAPI.downloadAvatar(user.getAvatar(), accessKey);
 		return ResponseEntity.status(HttpStatus.OK)
                 .contentType(MediaType.IMAGE_JPEG)
                 .body(data);
@@ -194,11 +206,11 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	@Transactional
 	public void deleteAvatar() {
-		User user = getById(getCurrentUser().getId());
+		User user = getById(securityUtil.getCurrentUser().getId());
 		if (user.getAvatar().equals(defaultAvatar)) {
 			throw new UserException("You already have default avatar");
 		}
-		filesService.deleteAvatar(user.getAvatar(), accessKey);
+		filesAPI.deleteAvatar(user.getAvatar(), accessKey);
 		user.setAvatar(defaultAvatar);
 	}
 
@@ -206,7 +218,7 @@ public class UsersServiceImpl implements UsersService {
 	@Transactional
 	public void addComment(Long id, String text) {
 		User user = getById(id);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		if (user.getId().equals(currentUser.getId())) {
 			throw new UserException("You cant add comment to yourself");
 		}
@@ -222,7 +234,7 @@ public class UsersServiceImpl implements UsersService {
 	@Transactional
 	public void deleteComment(Long id) {
 		Comment comment = commentsRepository.findById(id).orElseThrow(() -> new UserException("Comment not found"));
-		if (!comment.getOwner().getId().equals(getCurrentUser().getId())) {
+		if (!comment.getOwner().getId().equals(securityUtil.getCurrentUser().getId())) {
 			throw new UserException("You are not owner of this comment");
 		}
 		commentsRepository.delete(comment);
@@ -232,7 +244,7 @@ public class UsersServiceImpl implements UsersService {
 	@Transactional
 	public void addGrade(Long id, int stars) {
 		User user = getById(id);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		if (currentUser.getId().equals(user.getId())) {
 			throw new UserException("You cant add grade to yourself");
 		}
@@ -260,7 +272,7 @@ public class UsersServiceImpl implements UsersService {
 	@Transactional
 	public void createReport(Long id, String cause) {
 		User user = getById(id);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		reportsRepository.findByUserAndSender(user, currentUser).ifPresent(report -> {
 			throw new UserException("You already send report to this user");
 		});
@@ -300,7 +312,7 @@ public class UsersServiceImpl implements UsersService {
 				.user(user)
 				.cause(cause)
 				.build());
-		longKafkaTemplate.send("deleted_user_tokens", user.getId());
+		authenticationAPI.disableUser(user.getEmail());
 		String message = "Your account has been banned due to: " + cause;
 		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(user.getEmail(), message));
 	}
@@ -312,26 +324,47 @@ public class UsersServiceImpl implements UsersService {
 		bannedUsersRepository.findByUser(user).ifPresentOrElse(bannedUsersRepository::delete, () -> {
 			throw new UserException("User is not banned");
 		});
-		String message = String.format("Your account with email %s has been unbanned", user.getEmail());
+		authenticationAPI.enableUser(user.getEmail());
+		String message = "Your account has been unbanned!";
 		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(user.getEmail(), message));
+	}
+
+	@Override
+	public Map<String, Object> isBanned(String usernameOrEmail) {
+		Optional<BannedUser> bannedUserOptional = Optional.ofNullable(bannedUsersRepository.findByUsername(usernameOrEmail)
+                .orElseGet(() -> bannedUsersRepository.findByEmail(usernameOrEmail).orElse(null)));
+		Map<String, Object> response = new HashMap<>();
+		bannedUserOptional.ifPresentOrElse(bannedUser -> {
+			response.put("is_banned", true);
+			response.put("cause", bannedUser.getCause());
+		}, () -> response.put("is_banned", false));
+		return response;
 	}
 
 	@Override
 	@Transactional
 	public void delete() {
-		User user = getById(getCurrentUser().getId());
+		User user = getById(securityUtil.getCurrentUser().getId());
 		usersRepository.delete(user);
+		authenticationAPI.deleteUser(accessKey, securityUtil.getJwtBearerToken());
 		if (!user.getAvatar().equals(defaultAvatar)) {
-			filesService.deleteAvatar(user.getAvatar(), accessKey);
+			filesAPI.deleteAvatar(user.getAvatar(), accessKey);
 		}
 		longKafkaTemplate.send("deleted_user", user.getId());
 	}
 
 	@Override
 	@Transactional
+	public void delete(Long id) {
+		getById(id);
+		usersRepository.deleteById(id);
+	}
+
+	@Override
+	@Transactional
 	public void blockUser(Long id) {
 		User user = getById(id);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		blockedUsersRepository.findByOwnerAndUser(currentUser, user).ifPresent(blockedUser -> {
 			throw new UserException("User already blocked");
 		});
@@ -342,7 +375,7 @@ public class UsersServiceImpl implements UsersService {
 	@Transactional
 	public void unblockUser(Long id) {
 		User user = getById(id);
-		User currentUser = getCurrentUser();
+		User currentUser = securityUtil.getCurrentUser();
 		blockedUsersRepository.findByOwnerAndUser(currentUser, user)
 			.ifPresentOrElse(blockedUsersRepository::delete, () -> {
 				throw new UserException("User is not blocked");
@@ -352,7 +385,7 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	public List<DataDTO<Long>> getBlockedUsers(int page, int count) {
 		return blockedUsersRepository
-				.findAllByOwner(getCurrentUser(), PageRequest.of(page, count,
+				.findAllByOwner(securityUtil.getCurrentUser(), PageRequest.of(page, count,
 						Sort.by(Sort.Direction.DESC, "id"))).stream()
 					.map(blockedUser -> new DataDTO<>(blockedUser.getUserId()))
 					.toList();
@@ -361,13 +394,7 @@ public class UsersServiceImpl implements UsersService {
 	@Override
 	public DataDTO<Boolean> isBlockedByUser(Long id) {
 		User user = getById(id);
-		return new DataDTO<>(blockedUsersRepository.findByOwnerAndUser(user, getCurrentUser()).isPresent());
-	}
-
-	public static User getCurrentUser() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-		return userDetails.user();
+		return new DataDTO<>(blockedUsersRepository.findByOwnerAndUser(user, securityUtil.getCurrentUser()).isPresent());
 	}
 
 }

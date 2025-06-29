@@ -2,52 +2,54 @@ package danix.app.chats_service.config;
 
 import danix.app.chats_service.repositories.UsersChatsRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
-import danix.app.chats_service.security.User;
-import danix.app.chats_service.security.UserDetailsImpl;
-import danix.app.chats_service.security.UserDetailsServiceImpl;
+import danix.app.chats_service.models.User;
+import danix.app.chats_service.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
-
-	private final UserDetailsServiceImpl userDetailsService;
 
 	private final UsersChatsRepository usersChatsRepository;
 
 	private final SupportChatsRepository supportChatsRepository;
 
+	private final SecurityUtil securityUtil;
+
+	private final JwtDecoder jwtDecoder;
+
+	private final JwtAuthConverter jwtAuthConverter;
+
 	@Override
-	public Message<?> preSend(Message<?> message, MessageChannel channel) {
-		StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-		assert accessor != null && accessor.getCommand() != null;
-		switch (accessor.getCommand()) {
+	public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
+		StompHeaderAccessor accessor = Objects.requireNonNull(
+				MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class)
+		);
+		switch (Objects.requireNonNull(accessor.getCommand())) {
 			case CONNECT -> {
-				String header = accessor.getFirstNativeHeader("Authorization");
-				UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(header);
-				UsernamePasswordAuthenticationToken token =
-						new UsernamePasswordAuthenticationToken(
-								userDetails,
-								null,
-								userDetails.getAuthorities()
-						);
-				accessor.setUser(token);
+				String header = Objects.requireNonNull(accessor.getFirstNativeHeader("Authorization"));
+				AbstractAuthenticationToken authToken = getAuthToken(header);
+				accessor.setUser(authToken);
 			}
 			case SUBSCRIBE -> {
-				Authentication authentication = (Authentication) accessor.getUser();
-				assert authentication != null;
-				UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-				User user = userDetails.authentication();
-				String dest = accessor.getDestination();
-				assert dest != null;
+				Authentication authentication = Objects.requireNonNull((Authentication) accessor.getUser());
+				User user = securityUtil.getCurrentUserFromAuthentication(authentication);
+				String dest = Objects.requireNonNull(accessor.getDestination());
 				if (dest.startsWith("/topic/chat/")) {
 					long id = Long.parseLong(dest.substring(12));
 					usersChatsRepository.findById(id).ifPresentOrElse(chat -> {
@@ -79,6 +81,15 @@ public class AuthChannelInterceptorAdapter implements ChannelInterceptor {
 			}
 		}
 		return message;
+	}
+
+	private AbstractAuthenticationToken getAuthToken(String header) {
+		if (header.startsWith("Bearer ")) {
+			String tokenValue = header.substring(7);
+			Jwt jwt = jwtDecoder.decode(tokenValue);
+			return jwtAuthConverter.convert(jwt);
+		}
+		throw new IllegalArgumentException();
 	}
 
 }

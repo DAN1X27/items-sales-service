@@ -28,8 +28,8 @@ public class UsersChatsController {
 	private final UsersChatsService chatsService;
 
 	@GetMapping
-	public ResponseEntity<List<ResponseUsersChatDTO>> getUserChats() {
-		return new ResponseEntity<>(chatsService.getUserChats(), HttpStatus.OK);
+	public ResponseEntity<List<ResponseUsersChatDTO>> getUserChats(@RequestParam int page, @RequestParam int count) {
+		return new ResponseEntity<>(chatsService.getUserChats(page, count), HttpStatus.OK);
 	}
 
 	@GetMapping("/{id}/messages")
