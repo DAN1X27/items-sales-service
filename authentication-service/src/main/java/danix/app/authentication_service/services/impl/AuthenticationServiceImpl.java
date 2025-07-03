@@ -56,6 +56,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final RegistrationMapper registrationMapper;
 
+    private static final Random random = new Random();
+
     @Value("${access_key}")
     private String accessKey;
 
@@ -132,8 +134,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String email = emailKeyDTO.getEmail();
         Map<String, Long> idData = usersAPI.registrationConfirm(email, accessKey);
         Long id = idData.get("data");
+        UserInfoDTO userInfo = null;
         try {
-            UserInfoDTO userInfo = getUserInfo(email);
+            userInfo = getUserInfo(email);
             userInfo.setEnabled(true);
             UserAttributesDTO userAttributes = userInfo.getAttributes();
             userAttributes.setId(List.of(id));
@@ -141,9 +144,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             keycloakAPI.updateUserInfo(userId, userInfo, getAdminAccessToken());
         } catch (Exception e) {
             usersAPI.deleteUser(id, accessKey);
+            if (userInfo != null) {
+                keycloakAPI.deleteUser(userInfo.getId(), getAdminAccessToken());
+            }
             throw e;
+        } finally {
+            emailKeysRepository.deleteById(email);
         }
-        emailKeysRepository.deleteById(email);
     }
 
     @Override
@@ -303,7 +310,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private void sendEmailKey(String email, String message) {
-        Random random = new Random();
         int key = random.nextInt(100_000, 999_999);
         EmailKey emailKey = EmailKey.builder()
                 .email(email)
