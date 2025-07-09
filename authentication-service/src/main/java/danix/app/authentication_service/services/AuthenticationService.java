@@ -25,6 +25,8 @@ public interface AuthenticationService {
 
     void resetPassword(ResetPasswordDTO resetPasswordDTO);
 
+    void updatePassword(UpdatePasswordDTO updatePasswordDTO);
+
     void sendUpdateEmailKey(UpdateEmailDTO updateEmailDTO);
 
     void updateEmail(UpdateEmailKeyDTO emailKeyDTO);
@@ -36,8 +38,6 @@ public interface AuthenticationService {
     void incrementEmailKeyAttempts(EmailKey emailKey);
 
     void deleteEmailKey(EmailKey emailKey);
-
-    void deleteUser();
 
     void deleteUser(String email);
 

@@ -60,6 +60,9 @@ jwt:
   resource-id: ${jwt.resource-id}
   principal-attribute: ${jwt.principal-attribute}
 access_key: ${access_key}
+kafka-topics:
+  email-message: ${kafka.topics.email-message}
+  deleted_user: ${kafka.topics.deleted-user}
 management:
   endpoints:
     web:

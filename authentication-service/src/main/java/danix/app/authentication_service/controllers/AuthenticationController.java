@@ -7,9 +7,12 @@ import danix.app.authentication_service.dto.ResetPasswordDTO;
 import danix.app.authentication_service.dto.TokensDTO;
 import danix.app.authentication_service.dto.UpdateEmailDTO;
 import danix.app.authentication_service.dto.UpdateEmailKeyDTO;
+import danix.app.authentication_service.dto.UpdatePasswordDTO;
 import danix.app.authentication_service.dto.UpdateUserInfoDTO;
 import danix.app.authentication_service.services.AuthenticationService;
-import danix.app.authentication_service.util.*;
+import danix.app.authentication_service.util.EmailKeyValidator;
+import danix.app.authentication_service.util.ErrorData;
+import danix.app.authentication_service.util.RequestException;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -103,6 +106,14 @@ public class AuthenticationController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PatchMapping("/password")
+    public ResponseEntity<HttpStatus> updatePassword(@RequestBody @Valid UpdatePasswordDTO updatePasswordDTO,
+                                                     BindingResult bindingResult) {
+        handleRequestErrors(bindingResult);
+        authenticationService.updatePassword(updatePasswordDTO);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @Hidden
     @PutMapping("/user")
     public ResponseEntity<HttpStatus> updateUserInfo(@RequestBody UpdateUserInfoDTO updateUserInfoDTO) {
@@ -125,13 +136,6 @@ public class AuthenticationController {
     @PatchMapping("/enable-user")
     public ResponseEntity<HttpStatus> enableUser(@RequestParam String email) {
         authenticationService.enableUser(email);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @Hidden
-    @DeleteMapping("/user")
-    public ResponseEntity<HttpStatus> deleteUser() {
-        authenticationService.deleteUser();
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

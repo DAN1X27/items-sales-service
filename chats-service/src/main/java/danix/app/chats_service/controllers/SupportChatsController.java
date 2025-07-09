@@ -80,9 +80,9 @@ public class SupportChatsController {
 
 	@PostMapping("/{id}/message")
 	public ResponseEntity<DataDTO<Long>> sendMessage(@PathVariable long id, @RequestBody @Valid MessageDTO messageDTO,
-													 @RequestHeader("Authorization") String token, BindingResult bindingResult) {
+													 BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		return new ResponseEntity<>(chatService.sendTextMessage(id, messageDTO.getMessage(), token), HttpStatus.CREATED);
+		return new ResponseEntity<>(chatService.sendTextMessage(id, messageDTO.getMessage()), HttpStatus.CREATED);
 	}
 
 	@PatchMapping("/message/{id}")
@@ -94,15 +94,13 @@ public class SupportChatsController {
 	}
 
 	@PostMapping("/{id}/image")
-	public ResponseEntity<DataDTO<Long>> sendImage(@PathVariable long id, @RequestParam MultipartFile image,
-												   @RequestHeader("Authorization") String token) {
-		return new ResponseEntity<>(chatService.sendFile(id, image, token, ContentType.IMAGE), HttpStatus.CREATED);
+	public ResponseEntity<DataDTO<Long>> sendImage(@PathVariable long id, @RequestParam MultipartFile image) {
+		return new ResponseEntity<>(chatService.sendFile(id, image, ContentType.IMAGE), HttpStatus.CREATED);
 	}
 
 	@PostMapping("/{id}/video")
-	public ResponseEntity<DataDTO<Long>> sendVideo(@PathVariable long id, @RequestParam MultipartFile video,
-												   @RequestHeader("Authorization") String token) {
-		return new ResponseEntity<>(chatService.sendFile(id, video, token, ContentType.VIDEO), HttpStatus.OK);
+	public ResponseEntity<DataDTO<Long>> sendVideo(@PathVariable long id, @RequestParam MultipartFile video) {
+		return new ResponseEntity<>(chatService.sendFile(id, video, ContentType.VIDEO), HttpStatus.OK);
 	}
 
 	@GetMapping("/image/{id}")

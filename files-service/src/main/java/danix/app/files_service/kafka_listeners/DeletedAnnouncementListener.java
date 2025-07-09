@@ -16,7 +16,7 @@ public class DeletedAnnouncementListener {
 
     private final FilesService filesService;
 
-    @KafkaListener(topics = "deleted_announcement", containerFactory = "listFactory")
+    @KafkaListener(topics = "${kafka-topics.deleted_announcement}", containerFactory = "listFactory")
     public void deleteAnnouncementImages(List<String> images) {
         log.info("Deleting announcement images, size: {}", images.size());
         images.forEach(image -> filesService.delete(FileType.ANNOUNCEMENT_IMAGE, image));

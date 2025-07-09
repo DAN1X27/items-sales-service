@@ -87,6 +87,12 @@ public class UsersServiceImpl implements UsersService {
 
 	private final SecurityUtil securityUtil;
 
+	@Value("${kafka-topics.deleted-user}")
+	private String deletedUserTopic;
+
+	@Value("${kafka-topics.email-message}")
+	private String emailMessageTopic;
+
 	@Value("${avatar.default}")
 	private String defaultAvatar;
 
@@ -257,7 +263,7 @@ public class UsersServiceImpl implements UsersService {
                         .user(user)
                         .owner(currentUser)
                         .build()));
-		double grade = user.getGrades().stream().mapToDouble(Grade::getStars).sum() / user.getGrades().size();
+		double grade = gradesRepository.getAverageGrade(user.getId());
 		BigDecimal bigDecimal = BigDecimal.valueOf(grade).setScale(1, RoundingMode.HALF_UP);
 		user.setGrade(bigDecimal.doubleValue());
 	}
@@ -314,7 +320,7 @@ public class UsersServiceImpl implements UsersService {
 				.build());
 		authenticationAPI.disableUser(user.getEmail());
 		String message = "Your account has been banned due to: " + cause;
-		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(user.getEmail(), message));
+		emailMessageKafkaTemplate.send(emailMessageTopic, new EmailMessageDTO(user.getEmail(), message));
 	}
 
 	@Override
@@ -326,7 +332,7 @@ public class UsersServiceImpl implements UsersService {
 		});
 		authenticationAPI.enableUser(user.getEmail());
 		String message = "Your account has been unbanned!";
-		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(user.getEmail(), message));
+		emailMessageKafkaTemplate.send(emailMessageTopic, new EmailMessageDTO(user.getEmail(), message));
 	}
 
 	@Override
@@ -346,11 +352,10 @@ public class UsersServiceImpl implements UsersService {
 	public void delete() {
 		User user = getById(securityUtil.getCurrentUser().getId());
 		usersRepository.delete(user);
-		authenticationAPI.deleteUser(accessKey, securityUtil.getJwtBearerToken());
+		longKafkaTemplate.send(deletedUserTopic, user.getId());
 		if (!user.getAvatar().equals(defaultAvatar)) {
 			filesAPI.deleteAvatar(user.getAvatar(), accessKey);
 		}
-		longKafkaTemplate.send("deleted_user", user.getId());
 	}
 
 	@Override

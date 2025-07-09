@@ -61,6 +61,9 @@ eureka:
 allowed_origins: ${allowed_origins}
 access_key: ${access_key}
 temp-users_storage_time: ${temp-users_storage_time}
+kafka-topics:
+  deleted-user: ${kafka.topics.deleted-user}
+  email-message: ${kafka.topics.email-message}
 redis:
   host: ${redis.host}
   port: ${redis.port}

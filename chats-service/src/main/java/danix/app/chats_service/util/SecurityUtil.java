@@ -23,6 +23,12 @@ public class SecurityUtil {
         return convertJwtToUser(authToken);
     }
 
+    public String getJwt() {
+        JwtAuthenticationToken authToken =
+                (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        return "Bearer " + authToken.getToken().getTokenValue();
+    }
+
     private User convertJwtToUser(JwtAuthenticationToken authToken) {
         Jwt jwt = authToken.getToken();
         return User.builder()

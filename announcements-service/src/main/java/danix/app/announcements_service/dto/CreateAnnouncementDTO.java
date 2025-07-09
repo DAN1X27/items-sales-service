@@ -5,11 +5,12 @@ import danix.app.announcements_service.util.NullOrNotBlank;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CreateAnnouncementDTO {
 
 	@NotBlank(message = "Title must not be empty")

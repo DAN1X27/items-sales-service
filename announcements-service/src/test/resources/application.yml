@@ -1,0 +1,42 @@
+spring:
+  profiles:
+    active: test
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: true
+        format_sql: true
+  flyway:
+    locations: classpath:db_migration
+  kafka:
+    consumer:
+      group-id: group-id
+      bootstrap-servers: localhost:9092
+  cloud:
+    config:
+      import-check:
+        enabled: false
+  servlet:
+    multipart:
+      max-request-size: 1000MB
+      max-file-size: 1000MB
+eureka:
+  client:
+    enabled: false
+jwt:
+  resource-id: test
+  principal-attribute: test
+kafka-topics:
+  deleted-announcement: test_deleted_announcement
+  deleted-user: test_deleted_user
+  email-message: test_email_message
+max_storage_days: 30
+max_images_count: 10
+access_key: test
+currency_layer_api_key: test
+currency_layer_url: test
+allowed_origins: http://localhost:8080
+test-kafka-group-id: test-group-id

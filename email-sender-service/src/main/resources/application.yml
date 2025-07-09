@@ -25,6 +25,7 @@ spring:
     consumer:
       bootstrap-servers: ${kafka.host}:${kafka.port}
       group-id: ${kafka.group_id}
+kafka-topic: ${kafka.topics.email-message}
 management:
   endpoints:
     web:

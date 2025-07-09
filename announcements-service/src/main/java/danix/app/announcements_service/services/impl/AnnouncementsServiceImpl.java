@@ -20,6 +20,7 @@ import danix.app.announcements_service.services.CurrencyConverterService;
 import danix.app.announcements_service.util.AnnouncementException;
 import danix.app.announcements_service.util.CurrencyCode;
 import danix.app.announcements_service.util.SortData;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 @Service
 @RequiredArgsConstructor
@@ -66,7 +68,19 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 
 	private final SecurityUtil securityUtil;
 
-	private static final Sort idSort = Sort.by(Sort.Direction.DESC, "id");
+	@Value("${kafka-topics.deleted-announcement}")
+	private String deletedAnnouncementTopic;
+
+	@Value("${kafka-topics.email-message}")
+	private String emailMessageTopic;
+
+	private static final Sort ID_SORT = Sort.by(Sort.Direction.DESC, "id");
+
+	@Getter
+    private static final CountDownLatch DELETED_USER_LATCH = new CountDownLatch(1);
+
+	@Getter
+	private static final CountDownLatch DELETE_EXPIRED_ANNOUNCEMENTS_LATCH = new CountDownLatch(1);
 
 	@Value("${max_images_count}")
 	private int maxImagesCount;
@@ -77,7 +91,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	@Value("${access_key}")
 	private String accessKey;
 
-	@Override
+    @Override
 	public List<ResponseAnnouncementDTO> findAll(int page, int count, CurrencyCode currency, List<String> filters,
 												 SortData sortData, String country, String city) {
 		PageRequest pageRequest = getPageRequest(page, count, sortData);
@@ -122,8 +136,8 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 	@Override
 	public List<ResponseAnnouncementDTO> findAllByUser(Long id, CurrencyCode currency, int page, int count) {
 		List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
-				.findAllByOwnerId(id, PageRequest.of(page, count, idSort)));
-		return announcementMapper.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, idSort), currency);
+				.findAllByOwnerId(id, PageRequest.of(page, count, ID_SORT)));
+		return announcementMapper.toResponseDTOList(announcementsRepository.findAllByIdIn(ids, ID_SORT), currency);
 	}
 
 	@Override
@@ -146,7 +160,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 
 	@Override
 	@Transactional
-	public void addImage(MultipartFile image, Long id) {
+	public DataDTO<Long> addImage(MultipartFile image, Long id) {
 		Announcement announcement = findById(id);
 		checkAnnouncementOwner(announcement);
 		if (announcement.getImages().size() >= maxImagesCount) {
@@ -154,7 +168,9 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 		}
 		String uuid = UUID.randomUUID() + ".jpg";
 		filesAPI.saveImage(image, uuid, accessKey);
-		imagesRepository.save(new Image(uuid, announcement));
+		Image savedImage = new Image(uuid, announcement);
+		imagesRepository.save(savedImage);
+		return new DataDTO<>(savedImage.getId());
 	}
 
 	@Override
@@ -262,7 +278,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 		String email = getUserEmail(announcement.getOwnerId());
 		String message = String.format("Your announcement with title '%s' has been banned due to: %s",
 				announcement.getTitle(), cause);
-		emailMessageKafkaTemplate.send("message", new EmailMessageDTO(email, message));
+		emailMessageKafkaTemplate.send(emailMessageTopic, new EmailMessageDTO(email, message));
 		announcementsRepository.deleteById(announcement.getId());
 	}
 
@@ -312,33 +328,35 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 			if (ids.isEmpty()) {
 				break;
 			}
-			List<Announcement> announcements = announcementsRepository.findAllByIdIn(ids, idSort);
+			List<Announcement> announcements = announcementsRepository.findAllByIdIn(ids, ID_SORT);
 			deleteImages(announcements);
 			announcements.forEach(announcement -> {
 				String email = getUserEmail(announcement.getOwnerId());
 				String message = "Your announcement has been removed due to expiration";
-				emailMessageKafkaTemplate.send("message", new EmailMessageDTO(email, message));
+				emailMessageKafkaTemplate.send(emailMessageTopic, new EmailMessageDTO(email, message));
 			});
 			announcementsRepository.deleteAllByIdIn(ids);
 			page++;
 		}
+		DELETE_EXPIRED_ANNOUNCEMENTS_LATCH.countDown();
 	}
 
 	@Transactional
-	@KafkaListener(topics = "deleted_user", containerFactory = "containerFactory")
+	@KafkaListener(topics = "${kafka-topics.deleted-user}", containerFactory = "containerFactory")
 	public void deletedUserListener(Long id) {
 		int page = 0;
-		 while (true) {
+		while (true) {
 			List<Long> ids = announcementMapper.toIdsListFromProjectionsList(announcementsRepository
-					.findAllByOwnerId(id, PageRequest.of(page, 50, idSort)));
+					.findAllByOwnerId(id, PageRequest.of(page, 50, ID_SORT)));
 			if (ids.isEmpty()) {
 				break;
 			}
-			List<Announcement> announcements = announcementsRepository.findAllByIdIn(ids, idSort);
+			List<Announcement> announcements = announcementsRepository.findAllByIdIn(ids, ID_SORT);
 			deleteImages(announcements);
 			announcementsRepository.deleteAllByIdIn(ids);
 			page++;
 		}
+		DELETED_USER_LATCH.countDown();
 	}
 
 	private Announcement findById(Long id) {
@@ -351,7 +369,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 			List<String> images = announcement.getImages().stream()
 					.map(Image::getFileName)
 					.toList();
-			listKafkaTemplate.send("deleted_announcement", images);
+			listKafkaTemplate.send(deletedAnnouncementTopic, images);
 		}
 	}
 
@@ -360,7 +378,7 @@ public class AnnouncementsServiceImpl implements AnnouncementsService {
 				.flatMap(announcement -> announcement.getImages().stream().map(Image::getFileName))
 				.toList();
 		if (!images.isEmpty()) {
-			listKafkaTemplate.send("deleted_announcement", images);
+			listKafkaTemplate.send(deletedAnnouncementTopic, images);
 		}
 	}
 

@@ -1,6 +1,5 @@
-package danix.app.announcements_service.config;
+package integration.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,62 +13,34 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
-@RequiredArgsConstructor
 @EnableWebSecurity
 @EnableMethodSecurity
-public class SecurityConfig {
-
-    private final JwtAuthConverter authConverter;
+public class TestSecurityConfig {
 
     @Value("${access_key}")
     private String accessKey;
 
-    @Value("${allowed_origins}")
-    private List<String> allowedOrigins;
-
     @Bean
-    public SecurityFilterChain config(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfiguration()))
-                .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/error", "/announcements/swagger-ui/**", "/announcements/v3/api-docs/**")
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/error")
                         .permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS)
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/announcements", "/announcements/{id}", "/announcements/find")
+                        .requestMatchers(HttpMethod.GET, "/announcements", "/announcements/find", "/announcements/{id}")
                         .permitAll()
                         .requestMatchers("/announcements/expired")
-                        .access(accessKeyAuthManager())
+                        .access(testAccessKeyAuthManager())
                         .anyRequest()
                         .hasAnyRole("USER", "ADMIN"))
-                .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(authConverter)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
 
     @Bean
-    CorsConfigurationSource corsConfiguration() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins);
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowedMethods(List.of("*"));
-        config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
-
-    @Bean
-    AuthorizationManager<RequestAuthorizationContext> accessKeyAuthManager() {
+    AuthorizationManager<RequestAuthorizationContext> testAccessKeyAuthManager() {
         return (authentication, object) -> {
             String accessKey = object.getRequest().getParameter("access_key");
             if (accessKey == null || !accessKey.equals(this.accessKey)) {

@@ -9,6 +9,7 @@ import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
+import danix.app.chats_service.util.EncryptUtil;
 import danix.app.chats_service.util.SecurityUtil;
 import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.MessagesService;
@@ -53,6 +54,8 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 
 	private final SecurityUtil securityUtil;
 
+	private final EncryptUtil encryptUtil;
+
 	@Override
 	public List<ResponseSupportChatDTO> getUserChats(int page, int count) {
 		long id = securityUtil.getCurrentUser().getId();
@@ -86,8 +89,9 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 			throw new ChatException("You already have active chat");
 		});
 		SupportChat chat = chatMapper.toSupportChat(user.getId());
+		String encryptedMessage = encryptUtil.encrypt(message);
 		chatsRepository.save(chat);
-		messagesRepository.save(messageMapper.toSupportChatMessage(message, user.getId(), chat, TEXT));
+		messagesRepository.save(messageMapper.toSupportChatMessage(encryptedMessage, user.getId(), chat, TEXT));
 		return new DataDTO<>(chat.getId());
 	}
 
@@ -133,16 +137,16 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 
 	@Override
 	@Transactional
-	public DataDTO<Long> sendTextMessage(long id, String text, String token) {
-		SupportChatMessage message = saveMessage(id, text, TEXT, token);
+	public DataDTO<Long> sendTextMessage(long id, String text) {
+		SupportChatMessage message = saveMessage(id, text, TEXT, securityUtil.getJwt());
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
 
 	@Override
-	public DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType) {
+	public DataDTO<Long> sendFile(long chatId, MultipartFile file, ContentType contentType) {
 		String fileName = messagesService.getFileName(contentType);
-		SupportChatMessage message = saveMessage(chatId, fileName, contentType, token);
+		SupportChatMessage message = saveMessage(chatId, fileName, contentType, securityUtil.getJwt());
 		messagesService.saveFile(file, message, contentType, () -> messagesRepository.delete(message));
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
@@ -162,10 +166,15 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 			throw new ChatException("Chat is closed");
 		}
 		checkAccess(chat);
-		long userId = chat.getUserId() == currentUser.getId() ? chat.getAdminId() : chat.getUserId();
-		boolean isBlocked = usersAPI.isBlockedByUser(userId, token).get("data");
-		if (isBlocked) {
-			throw new ChatException("User blocked you");
+		if (chat.getAdminId() != null) {
+			long userId = chat.getUserId() == currentUser.getId() ? chat.getAdminId() : chat.getUserId();
+			boolean isBlocked = usersAPI.isBlockedByUser(userId, token).get("data");
+			if (isBlocked) {
+				throw new ChatException("User blocked you");
+			}
+		}
+		if (contentType == TEXT) {
+			text = encryptUtil.encrypt(text);
 		}
 		SupportChatMessage message = messageMapper.toSupportChatMessage(text, currentUser.getId(), chat, contentType);
 		messagesRepository.save(message);
@@ -176,8 +185,9 @@ public class SupportChatsServiceImpl implements SupportChatsService {
 	@Transactional
 	public void updateMessage(long id, String text) {
 		SupportChatMessage message = getMessageById(id);
+		String encryptedText = encryptUtil.encrypt(text);
 		String topic = "/topic/support/" + message.getChat().getId();
-		messagesService.updateMessage(message, text, topic);
+		messagesService.updateMessage(message, encryptedText, topic);
 	}
 
 	@Override

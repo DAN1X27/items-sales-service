@@ -39,9 +39,9 @@ public class UsersChatsController {
 	}
 
 	@PostMapping("/{id}")
-	public ResponseEntity<DataDTO<Long>> create(@PathVariable long id, @RequestHeader("Authorization") String token) {
+	public ResponseEntity<DataDTO<Long>> create(@PathVariable long id) {
 
-		return new ResponseEntity<>(chatsService.create(id, token), HttpStatus.CREATED);
+		return new ResponseEntity<>(chatsService.create(id), HttpStatus.CREATED);
 	}
 
 	@DeleteMapping("/{id}")
@@ -52,11 +52,9 @@ public class UsersChatsController {
 
 	@PostMapping("/{id}/message")
 	public ResponseEntity<DataDTO<Long>> sendMessage(@PathVariable long id,
-			@RequestHeader("Authorization") String token, @RequestBody @Valid MessageDTO messageDTO,
-			BindingResult bindingResult) {
+			@RequestBody @Valid MessageDTO messageDTO, BindingResult bindingResult) {
 		handleRequestErrors(bindingResult);
-		return new ResponseEntity<>(chatsService.sendTextMessage(id, messageDTO.getMessage(), token),
-				HttpStatus.CREATED);
+		return new ResponseEntity<>(chatsService.sendTextMessage(id, messageDTO.getMessage()), HttpStatus.CREATED);
 	}
 
 	@PatchMapping("/message/{id}")
@@ -68,16 +66,14 @@ public class UsersChatsController {
 	}
 
 	@PostMapping("/{id}/image")
-	public ResponseEntity<DataDTO<Long>> sendImage(@PathVariable long id, @RequestParam MultipartFile image,
-			@RequestHeader("Authorization") String token) {
+	public ResponseEntity<DataDTO<Long>> sendImage(@PathVariable long id, @RequestParam MultipartFile image) {
 
-		return new ResponseEntity<>(chatsService.sendFile(id, image, token, ContentType.IMAGE), HttpStatus.CREATED);
+		return new ResponseEntity<>(chatsService.sendFile(id, image, ContentType.IMAGE), HttpStatus.CREATED);
 	}
 
 	@PostMapping("/{id}/video")
-	public ResponseEntity<DataDTO<Long>> sendVideo(@PathVariable long id, @RequestParam MultipartFile video,
-			@RequestHeader("Authorization") String token) {
-		return new ResponseEntity<>(chatsService.sendFile(id, video, token, ContentType.VIDEO), HttpStatus.OK);
+	public ResponseEntity<DataDTO<Long>> sendVideo(@PathVariable long id, @RequestParam MultipartFile video) {
+		return new ResponseEntity<>(chatsService.sendFile(id, video, ContentType.VIDEO), HttpStatus.OK);
 	}
 
 	@GetMapping("/video/{id}")

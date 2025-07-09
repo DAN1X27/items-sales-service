@@ -53,6 +53,9 @@ jwt:
   resource-id: ${jwt.resource-id}
 allowed_origins: ${allowed_origins}
 access_key: ${access_key}
+encrypt-secret-key: ${encrypt-secret-key}
+kafka-topics:
+  deleted-chat: ${kafka.topics.deleted-chat}
 server:
   port: 8085
 management:

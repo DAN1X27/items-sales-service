@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -79,8 +80,8 @@ public class AnnouncementsController {
     }
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<List<ResponseAnnouncementDTO>> getAllByUser(@PathVariable Long id,
-               @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam int page, @RequestParam int count) {
+    public ResponseEntity<List<ResponseAnnouncementDTO>> findAllByUser(@PathVariable Long id,
+                @RequestParam(defaultValue = "USD") CurrencyCode currency, @RequestParam int page, @RequestParam int count) {
         return new ResponseEntity<>(announcementsService.findAllByUser(id, currency, page, count), HttpStatus.OK);
     }
 
@@ -108,30 +109,33 @@ public class AnnouncementsController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/reports")
     public ResponseEntity<List<ResponseReportDTO>> getReports(@RequestParam int page, @RequestParam int count,
                 @RequestParam(value = "sort", defaultValue = "DESC") Sort.Direction sort) {
         return new ResponseEntity<>(announcementsService.getAllReports(page, count, sort), HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/report/{id}")
-    public ResponseEntity<ShowReportDTO> getReport(@PathVariable long id,
+    public ResponseEntity<ShowReportDTO> showReport(@PathVariable long id,
                 @RequestParam(defaultValue = "USD") CurrencyCode currency) {
         return new ResponseEntity<>(announcementsService.showReport(id, currency), HttpStatus.OK);
     }
 
-    @DeleteMapping("/report/{id}")
-    public ResponseEntity<HttpStatus> closeReport(@PathVariable Long id) {
-        announcementsService.closeReport(id);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
     @PostMapping("/{id}/report")
-    public ResponseEntity<HttpStatus> report(@PathVariable Long id,
+    public ResponseEntity<HttpStatus> createReport(@PathVariable Long id,
                 @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {
         handleRequestErrors(bindingResult);
         announcementsService.createReport(id, causeDTO.getCause());
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/report/{id}")
+    public ResponseEntity<HttpStatus> closeReport(@PathVariable Long id) {
+        announcementsService.closeReport(id);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PatchMapping("/{id}")
@@ -151,9 +155,8 @@ public class AnnouncementsController {
     }
 
     @PostMapping("/{id}/image")
-    public ResponseEntity<HttpStatus> addImage(@PathVariable Long id, @RequestParam MultipartFile image) {
-        announcementsService.addImage(image, id);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    public ResponseEntity<DataDTO<Long>> addImage(@PathVariable Long id, @RequestParam MultipartFile image) {
+        return new ResponseEntity<>(announcementsService.addImage(image, id), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/image/{id}")
@@ -168,6 +171,7 @@ public class AnnouncementsController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}/ban")
     public ResponseEntity<HttpStatus> ban(@PathVariable Long id,
                 @RequestBody @Valid CauseDTO causeDTO, BindingResult bindingResult) {

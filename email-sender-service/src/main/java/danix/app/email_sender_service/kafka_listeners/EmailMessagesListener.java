@@ -12,7 +12,7 @@ public class EmailMessagesListener {
 
 	private final EmailSenderService emailSenderService;
 
-	@KafkaListener(topics = "message", containerFactory = "messageFactory")
+	@KafkaListener(topics = "${kafka-topic}", containerFactory = "messageFactory")
 	public void receiveMessage(EmailMessageDTO emailMessage) {
 		emailSenderService.sendMessage(emailMessage.getEmail(), emailMessage.getMessage());
 	}

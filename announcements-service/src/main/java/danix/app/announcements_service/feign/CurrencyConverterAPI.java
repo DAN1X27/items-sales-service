@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
-@FeignClient(url = "http://apilayer.net", name = "currency-converter")
+@FeignClient(url = "${currency_layer_url}", name = "currency-converter")
 public interface CurrencyConverterAPI {
 
 	@GetMapping("/api/live")

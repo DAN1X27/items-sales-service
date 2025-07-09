@@ -1,11 +1,13 @@
 package danix.app.announcements_service.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class CauseDTO {
 
     @NotBlank(message = "Cause must not be empty")

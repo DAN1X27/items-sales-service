@@ -40,6 +40,9 @@ public class MessagesServiceImpl implements MessagesService {
 	@Value("${access_key}")
 	private String accessKey;
 
+	@Value("${kafka-topics.deleted-chat}")
+	private String deletedChatTopic;
+
 	@Override
 	public ResponseEntity<?> getFile(Message message, ContentType contentType) {
 		MediaType mediaType;
@@ -119,7 +122,7 @@ public class MessagesServiceImpl implements MessagesService {
 					.map(Message::getText)
 					.toList();
 			if (!files.isEmpty()) {
-				kafkaTemplate.send("deleted_chat", files);
+				kafkaTemplate.send(deletedChatTopic, files);
 				page++;
 			}
 		}
