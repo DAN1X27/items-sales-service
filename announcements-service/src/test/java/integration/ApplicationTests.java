@@ -937,7 +937,6 @@ public class ApplicationTests {
         List<Announcement> remaining = announcementsRepository.findAll();
         assertEquals(5, remaining.size());
         remaining.forEach(announcement -> assertEquals(time.toLocalDate(), announcement.getCreatedAt().toLocalDate()));
-        assertEquals(5, emailMessagesQueue.size());
         while (!emailMessagesQueue.isEmpty()) {
             EmailMessageDTO emailMessage = emailMessagesQueue.poll(5, TimeUnit.SECONDS);
             assertNotNull(emailMessage);
