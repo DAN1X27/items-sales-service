@@ -937,14 +937,9 @@ public class ApplicationTests {
         List<Announcement> remaining = announcementsRepository.findAll();
         assertEquals(5, remaining.size());
         remaining.forEach(announcement -> assertEquals(time.toLocalDate(), announcement.getCreatedAt().toLocalDate()));
-        EmailMessageDTO emailMessage = emailMessagesQueue.poll(5, TimeUnit.SECONDS);
-        assertNotNull(emailMessage);
-        assertNotNull(emailMessage.getEmail());
-        assertNotNull(emailMessage.getMessage());
-        int emailMessagesCount = 1;
-        while (!emailMessagesQueue.isEmpty()) {
-            emailMessage = emailMessagesQueue.poll(10, TimeUnit.SECONDS);
-            assertNotNull(emailMessage);
+        int emailMessagesCount = 0;
+        EmailMessageDTO emailMessage;
+        while ((emailMessage = emailMessagesQueue.poll(5, TimeUnit.SECONDS)) != null) {
             assertNotNull(emailMessage.getEmail());
             assertNotNull(emailMessage.getMessage());
             emailMessagesCount++;
