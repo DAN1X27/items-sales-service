@@ -14,6 +14,15 @@ public class ResponseAnnouncementDTO {
 
 	private Double price;
 
+	private String country;
+
+	private String city;
+
+	private String type;
+
+	@JsonProperty("owner_id")
+	private Long ownerId;
+
 	@JsonProperty("image_id")
 	private Long imageId;
 

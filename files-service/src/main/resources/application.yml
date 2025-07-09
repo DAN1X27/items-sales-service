@@ -34,6 +34,9 @@ eureka:
     service-url:
       defaultZone: ${eureka.server.url}
 access_key: ${access_key}
+kafka-topics:
+  deleted-chat: ${kafka.topics.deleted-chat}
+  deleted_announcement: ${kafka.topics.deleted-announcement}
 management:
   endpoints:
     web:

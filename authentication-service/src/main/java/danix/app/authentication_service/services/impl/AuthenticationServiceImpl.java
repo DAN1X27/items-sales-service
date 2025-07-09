@@ -1,16 +1,7 @@
 package danix.app.authentication_service.services.impl;
 
 import danix.app.authentication_service.config.KeycloakProperties;
-import danix.app.authentication_service.dto.EmailMessageDTO;
-import danix.app.authentication_service.dto.LoginDTO;
-import danix.app.authentication_service.dto.RegistrationDTO;
-import danix.app.authentication_service.dto.RegistrationEmailKeyDTO;
-import danix.app.authentication_service.dto.ResetPasswordDTO;
-import danix.app.authentication_service.dto.TempRegistrationDTO;
-import danix.app.authentication_service.dto.TokensDTO;
-import danix.app.authentication_service.dto.UpdateEmailDTO;
-import danix.app.authentication_service.dto.UpdateEmailKeyDTO;
-import danix.app.authentication_service.dto.UpdateUserInfoDTO;
+import danix.app.authentication_service.dto.*;
 import danix.app.authentication_service.feign.KeycloakAPI;
 import danix.app.authentication_service.feign.UsersAPI;
 import danix.app.authentication_service.keycloak_dto.UserAttributesDTO;
@@ -23,7 +14,9 @@ import danix.app.authentication_service.repositories.EmailKeysRepository;
 import danix.app.authentication_service.services.AuthenticationService;
 import danix.app.authentication_service.util.AuthenticationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -56,6 +50,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final RegistrationMapper registrationMapper;
 
+    @Value("${kafka-topics.email-message}")
+    private String emailMessageTopic;
+
     private static final Random random = new Random();
 
     @Value("${access_key}")
@@ -71,12 +68,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             String cause = (String) isBannedResponse.get("cause");
             throw new AuthenticationException("Your account has been blocked due to: " + cause);
         }
-        MultiValueMap<String, Object> loginData = new LinkedMultiValueMap<>();
-        loginData.add("grant_type", "password");
-        loginData.add("client_id", keycloakProperties.getClientId());
-        loginData.add("client_secret", keycloakProperties.getClientSecret());
-        loginData.add("username", loginDTO.getUsername());
-        loginData.add("password", loginDTO.getPassword());
+        MultiValueMap<String, Object> loginData = getLoginData(loginDTO.getUsername(), loginDTO.getPassword());
         Map<String, String> tokens;
         try {
             tokens = getTokens(loginData);
@@ -177,17 +169,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public void resetPassword(ResetPasswordDTO resetPasswordDTO) {
         emailKeysRepository.deleteById(resetPasswordDTO.getEmail());
-        UserInfoDTO userInfo = getUserInfo(resetPasswordDTO.getEmail());
-        String userId = userInfo.getId();
+        updatePassword(resetPasswordDTO.getPassword());
+    }
+
+    @Override
+    public void updatePassword(UpdatePasswordDTO updatePasswordDTO) {
+        String email = getJwt().getClaim("email");
+        try {
+            MultiValueMap<String, Object> loginData = getLoginData(email, updatePasswordDTO.getOldPassword());
+            keycloakAPI.getTokens(loginData);
+        } catch (Exception e) {
+            throw new AuthenticationException("Incorrect password");
+        }
+        updatePassword(updatePasswordDTO.getNewPassword());
+    }
+
+    private void updatePassword(String password) {
+        String id = getUserIdFromJwt();
         Map<String, Object> resetPasswordData = new HashMap<>();
         resetPasswordData.put("type", "password");
         resetPasswordData.put("temporary", false);
-        resetPasswordData.put("value", resetPasswordDTO.getPassword());
-        keycloakAPI.resetPassword(userId, resetPasswordData, getAdminAccessToken());
+        resetPasswordData.put("value", password);
+        keycloakAPI.resetPassword(id, resetPasswordData, getAdminAccessToken());
     }
 
     private UserInfoDTO getUserInfo(String email) {
-        List<UserInfoDTO> response = keycloakAPI.getUser(email, getAdminAccessToken());
+        List<UserInfoDTO> response = keycloakAPI.getUsersByEmail(email, getAdminAccessToken());
         if (response.isEmpty()) {
             throw new AuthenticationException("User not found");
         }
@@ -239,11 +246,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             attributes.setCity(List.of(updateUserInfoDTO.getCity()));
         }
         keycloakAPI.updateUserInfo(getUserIdFromJwt(), userInfo, getAdminAccessToken());
-    }
-
-    @Override
-    public void deleteUser() {
-        keycloakAPI.deleteUser(getUserIdFromJwt(), getAdminAccessToken());
     }
 
     @Override
@@ -317,7 +319,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .storageTime(emailKeysStorageTime)
                 .build();
         emailKeysRepository.save(emailKey);
-        kafkaTemplate.send("message", new EmailMessageDTO(email, message + key));
+        kafkaTemplate.send(emailMessageTopic, new EmailMessageDTO(email, message + key));
+    }
+
+    private MultiValueMap<String, Object> getLoginData(String username, String password) {
+        MultiValueMap<String, Object> loginData = new LinkedMultiValueMap<>();
+        loginData.add("grant_type", "password");
+        loginData.add("client_id", keycloakProperties.getClientId());
+        loginData.add("client_secret", keycloakProperties.getClientSecret());
+        loginData.add("username", username);
+        loginData.add("password", password);
+        return loginData;
+    }
+
+    @KafkaListener(topics = "${kafka-topics.deleted_user}", containerFactory = "containerFactory")
+    public void deletedUserListener(Long id) {
+        String accessToken = getAdminAccessToken();
+        List<UserInfoDTO> users = keycloakAPI.getUsersById(id, accessToken);
+        if (users.isEmpty()) {
+            log.error("User with id: {} not found", id);
+        } else {
+            UserInfoDTO user = users.getFirst();
+            keycloakAPI.deleteUser(user.getId(), accessToken);
+        }
     }
 
 }

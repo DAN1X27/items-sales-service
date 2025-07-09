@@ -6,7 +6,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -19,6 +18,8 @@ public interface AnnouncementsRepository extends JpaRepository<Announcement, Lon
 	List<Announcement> findAllByIdIn(List<Long> ids, Sort sort);
 
 	List<IdProjection> findAllByOwnerId(Long ownerId, Pageable pageable);
+
+	int countByOwnerId(Long ownerId);
 
 	List<IdProjection> findAllByTitleContainsIgnoreCaseAndCountryAndCityAndTypeIn(String title, String country,
 			String city, List<String> types, Pageable pageable);

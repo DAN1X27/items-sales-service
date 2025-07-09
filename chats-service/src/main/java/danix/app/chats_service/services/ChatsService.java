@@ -12,9 +12,9 @@ public interface ChatsService {
 
     List<ResponseMessageDTO> getChatMessages(long id, int page, int count);
 
-    DataDTO<Long> sendTextMessage(long chatId, String text, String token);
+    DataDTO<Long> sendTextMessage(long chatId, String text);
 
-    DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType);
+    DataDTO<Long> sendFile(long chatId, MultipartFile file, ContentType contentType);
 
     ResponseEntity<?> getFile(long id, ContentType contentType);
 

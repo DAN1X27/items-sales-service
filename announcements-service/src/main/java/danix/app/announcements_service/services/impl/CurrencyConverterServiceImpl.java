@@ -20,7 +20,7 @@ public class CurrencyConverterServiceImpl implements CurrencyConverterService {
 
     private final CurrencyConverterAPI converterAPI;
 
-    @Value("${currency_converter_api_key}")
+    @Value("${currency_layer_api_key}")
     private String apiKey;
 
     @Override

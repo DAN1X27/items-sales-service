@@ -94,10 +94,16 @@ class UsersServiceTests {
     @InjectMocks
     private UsersServiceImpl usersService;
 
+    private final String emailMessageTopic = "email_message";
+
+    private final String deletedUserTopic = "deleted_user";
+
     @BeforeEach
     public void setUp() {
         ReflectionTestUtils.setField(usersService, "emailMessageKafkaTemplate", emailMessageKafkaTemplate);
         ReflectionTestUtils.setField(usersService, "longKafkaTemplate", longKafkaTemplate);
+        ReflectionTestUtils.setField(usersService, "emailMessageTopic", emailMessageTopic);
+        ReflectionTestUtils.setField(usersService, "deletedUserTopic", deletedUserTopic);
     }
 
     @Test
@@ -290,6 +296,7 @@ class UsersServiceTests {
         User currentUser = mockCurrentUser();
         when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(gradesRepository.findByUserAndOwner(testUser, currentUser)).thenReturn(Optional.empty());
+        when(gradesRepository.getAverageGrade(testUser.getId())).thenReturn(5.0);
         usersService.addGrade(testUser.getId(), 5);
         verify(gradesRepository).save(any());
         assertEquals(5, testUser.getGrade());
@@ -307,6 +314,7 @@ class UsersServiceTests {
         User currentUser = mockCurrentUser();
         when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(gradesRepository.findByUserAndOwner(testUser, currentUser)).thenReturn(Optional.empty());
+        when(gradesRepository.getAverageGrade(testUser.getId())).thenReturn(3.5);
         usersService.addGrade(testUser.getId(), 2);
         verify(gradesRepository).save(any());
         assertEquals(3.5, testUser.getGrade());
@@ -320,6 +328,7 @@ class UsersServiceTests {
         Grade grade = Grade.builder().stars(3).build();
         when(usersRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(gradesRepository.findByUserAndOwner(testUser, currentUser)).thenReturn(Optional.of(grade));
+        when(gradesRepository.getAverageGrade(testUser.getId())).thenReturn(5.0);
         usersService.addGrade(testUser.getId(), 5);
         verify(gradesRepository, never()).save(any());
         assertEquals(5, grade.getStars());
@@ -332,7 +341,7 @@ class UsersServiceTests {
     }
 
     @Test
-    public void addGradeYourself() {
+    public void addGradeToYourself() {
         User testUser = getTestUser();
         User currentUser = getTestCurrentUser();
         testUser.setId(currentUser.getId());
@@ -403,7 +412,7 @@ class UsersServiceTests {
         when(bannedUsersRepository.findByUser(testUser)).thenReturn(Optional.empty());
         usersService.banUser(testUser.getId(), "test_cause");
         verify(bannedUsersRepository).save(any());
-        verify(emailMessageKafkaTemplate).send(eq("message"), any());
+        verify(emailMessageKafkaTemplate).send(eq(emailMessageTopic), any());
     }
 
     @Test
@@ -428,7 +437,7 @@ class UsersServiceTests {
         when(bannedUsersRepository.findByUser(testUser)).thenReturn(Optional.of(bannedUser));
         usersService.unbanUser(testUser.getId());
         verify(bannedUsersRepository).delete(bannedUser);
-        verify(emailMessageKafkaTemplate).send(eq("message"), any());
+        verify(emailMessageKafkaTemplate).send(eq(emailMessageTopic), any());
     }
 
     @Test
@@ -452,7 +461,7 @@ class UsersServiceTests {
         usersService.delete();
         verify(usersRepository).delete(currentUser);
         verify(filesAPI).deleteAvatar(eq(currentUser.getAvatar()), any());
-        verify(longKafkaTemplate).send("deleted_user", currentUser.getId());
+        verify(longKafkaTemplate).send(deletedUserTopic, currentUser.getId());
     }
 
     @Test
@@ -463,7 +472,7 @@ class UsersServiceTests {
         usersService.delete();
         verify(usersRepository).delete(currentUser);
         verify(filesAPI, never()).deleteAvatar(eq(currentUser.getAvatar()), any());
-        verify(longKafkaTemplate).send("deleted_user", currentUser.getId());
+        verify(longKafkaTemplate).send(deletedUserTopic, currentUser.getId());
     }
 
     @Test

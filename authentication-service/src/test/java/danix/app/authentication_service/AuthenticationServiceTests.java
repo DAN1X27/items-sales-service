@@ -150,7 +150,7 @@ public class AuthenticationServiceTests {
         userInfoDTO.getAttributes().setId(null);
         when(usersAPI.registrationConfirm(emailKeyDTO.getEmail(), accessKey)).thenReturn(Map.of("data", id));
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(eq(emailKeyDTO.getEmail()), any())).thenReturn(List.of(userInfoDTO));
+        when(keycloakAPI.getUsersByEmail(eq(emailKeyDTO.getEmail()), any())).thenReturn(List.of(userInfoDTO));
         authenticationService.confirmRegistration(emailKeyDTO);
         verify(keycloakAPI).updateUserInfo(eq(userInfoDTO.getId()), eq(userInfoDTO), any());
         verify(emailKeysRepository).deleteById(emailKeyDTO.getEmail());
@@ -166,7 +166,7 @@ public class AuthenticationServiceTests {
         UserInfoDTO userInfoDTO = getTestUserInfo();
         when(usersAPI.registrationConfirm(emailKeyDTO.getEmail(), accessKey)).thenReturn(Map.of("data", id));
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(eq(emailKeyDTO.getEmail()), any())).thenReturn(List.of(userInfoDTO));
+        when(keycloakAPI.getUsersByEmail(eq(emailKeyDTO.getEmail()), any())).thenReturn(List.of(userInfoDTO));
         doThrow(new RuntimeException())
                 .when(keycloakAPI)
                 .updateUserInfo(eq(userInfoDTO.getId()), eq(userInfoDTO), any());
@@ -182,7 +182,7 @@ public class AuthenticationServiceTests {
         emailKeyDTO.setEmail("email");
         when(usersAPI.registrationConfirm(emailKeyDTO.getEmail(), accessKey)).thenReturn(Map.of("data", 1L));
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(eq(emailKeyDTO.getEmail()), any())).thenReturn(List.of());
+        when(keycloakAPI.getUsersByEmail(eq(emailKeyDTO.getEmail()), any())).thenReturn(List.of());
         assertThrows(AuthenticationException.class, () -> authenticationService.confirmRegistration(emailKeyDTO));
     }
 
@@ -199,7 +199,7 @@ public class AuthenticationServiceTests {
     @Test
     public void sendResetPasswordKey() {
         UserInfoDTO userInfoDTO = getTestUserInfo();
-        when(keycloakAPI.getUser(eq(userInfoDTO.getEmail()), any())).thenReturn(List.of(userInfoDTO));
+        when(keycloakAPI.getUsersByEmail(eq(userInfoDTO.getEmail()), any())).thenReturn(List.of(userInfoDTO));
         when(emailKeysRepository.findById(userInfoDTO.getEmail())).thenReturn(Optional.empty());
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
         authenticationService.sendResetPasswordKey(userInfoDTO.getEmail());
@@ -210,28 +210,38 @@ public class AuthenticationServiceTests {
     @Test
     public void sendResetPasswordKeyWhenUserNotFound() {
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of());
+        when(keycloakAPI.getUsersByEmail(any(), any())).thenReturn(List.of());
         assertThrows(AuthenticationException.class, () -> authenticationService.sendResetPasswordKey("email"));
     }
 
     @Test
     public void sendResetPasswordKeyWhenUserHasKey() {
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of(getTestUserInfo()));
+        when(keycloakAPI.getUsersByEmail(any(), any())).thenReturn(List.of(getTestUserInfo()));
         when(emailKeysRepository.findById(any())).thenReturn(Optional.of(new EmailKey()));
         assertThrows(AuthenticationException.class, () -> authenticationService.sendResetPasswordKey("email"));
     }
 
     @Test
     public void resetPassword() {
+        mockJwt(Map.of(JwtClaimNames.SUB, "id"));
         ResetPasswordDTO resetPasswordDTO = new ResetPasswordDTO();
         resetPasswordDTO.setEmail("email");
-        UserInfoDTO userInfoDTO = getTestUserInfo();
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of(userInfoDTO));
         authenticationService.resetPassword(resetPasswordDTO);
         verify(emailKeysRepository).deleteById(resetPasswordDTO.getEmail());
-        verify(keycloakAPI).resetPassword(eq(userInfoDTO.getId()), any(), any());
+        verify(keycloakAPI).resetPassword(any(), any(), any());
+    }
+
+    @Test
+    public void updatePassword() {
+        mockJwt(Map.of("email", "email", JwtClaimNames.SUB, "id"));
+        when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
+        UpdatePasswordDTO updatePasswordDTO = new UpdatePasswordDTO();
+        updatePasswordDTO.setOldPassword("old_password");
+        updatePasswordDTO.setNewPassword("new_password");
+        authenticationService.updatePassword(updatePasswordDTO);
+        verify(keycloakAPI).resetPassword(any(), any(), any());
     }
 
     @Test
@@ -256,9 +266,9 @@ public class AuthenticationServiceTests {
     public void updateEmail() {
         UpdateEmailKeyDTO updateEmailKeyDTO = new UpdateEmailKeyDTO();
         updateEmailKeyDTO.setEmail("new_email");
-        mockJwt(Map.of("email", "email", JwtClaimNames.SUB, "id"));
+        mockJwtWithTokenValue(Map.of("email", "email", JwtClaimNames.SUB, "id"));
         UserInfoDTO userInfoDTO = getTestUserInfo();
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of(userInfoDTO));
+        when(keycloakAPI.getUsersByEmail(any(), any())).thenReturn(List.of(userInfoDTO));
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
         authenticationService.updateEmail(updateEmailKeyDTO);
         verify(emailKeysRepository).deleteById(updateEmailKeyDTO.getEmail());
@@ -271,9 +281,9 @@ public class AuthenticationServiceTests {
     public void updateEmailWhenUserNotFound() {
         UpdateEmailKeyDTO updateEmailKeyDTO = new UpdateEmailKeyDTO();
         updateEmailKeyDTO.setEmail("new_email");
-        mockJwt(Map.of("email", "email"));
+        mockJwtWithTokenValue(Map.of("email", "email"));
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of());
+        when(keycloakAPI.getUsersByEmail(any(), any())).thenReturn(List.of());
         assertThrows(AuthenticationException.class, () -> authenticationService.updateEmail(updateEmailKeyDTO));
     }
 
@@ -281,9 +291,9 @@ public class AuthenticationServiceTests {
     public void updateEmailWhenThrowsException() {
         UpdateEmailKeyDTO updateEmailKeyDTO = new UpdateEmailKeyDTO();
         updateEmailKeyDTO.setEmail("new_email");
-        mockJwt(Map.of("email", "email"));
+        mockJwtWithTokenValue(Map.of("email", "email"));
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of());
+        when(keycloakAPI.getUsersByEmail(any(), any())).thenReturn(List.of());
         assertThrows(AuthenticationException.class, () -> authenticationService.updateEmail(updateEmailKeyDTO));
         verify(usersAPI).updateEmail(eq(updateEmailKeyDTO.getEmail()), eq(accessKey), any());
         verify(usersAPI).updateEmail(eq("email"), eq(accessKey), any());
@@ -296,13 +306,10 @@ public class AuthenticationServiceTests {
                 .city("new_city")
                 .country("new_country")
                 .build();
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(jwt);
-        when(jwt.getClaim("email")).thenReturn("email");
+        mockJwt(Map.of("email", "email"));
         UserInfoDTO userInfoDTO = getTestUserInfo();
         when(keycloakAPI.getTokens(any())).thenReturn(Map.of("access_token", "access_token"));
-        when(keycloakAPI.getUser(any(), any())).thenReturn(List.of(userInfoDTO));
+        when(keycloakAPI.getUsersByEmail(any(), any())).thenReturn(List.of(userInfoDTO));
         authenticationService.updateUserInfo(updateUserInfoDTO);
         verify(keycloakAPI).updateUserInfo(any(), any(), any());
         UserAttributesDTO attributesDTO = userInfoDTO.getAttributes();
@@ -313,11 +320,15 @@ public class AuthenticationServiceTests {
         assertNotNull(attributesDTO.getLastName());
     }
 
+    private void mockJwtWithTokenValue(Map<String, Object> claims) {
+        mockJwt(claims);
+        when(jwt.getTokenValue()).thenReturn("jwt");
+    }
+
     private void mockJwt(Map<String, Object> claims) {
         SecurityContextHolder.setContext(securityContext);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(jwt);
-        when(jwt.getTokenValue()).thenReturn("jwt");
         claims.forEach((name, value) -> when(jwt.getClaim(name)).thenReturn(value));
     }
 

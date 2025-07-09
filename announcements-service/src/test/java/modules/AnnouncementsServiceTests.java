@@ -1,4 +1,4 @@
-package danix.app.announcements_service;
+package modules;
 
 import danix.app.announcements_service.dto.*;
 import danix.app.announcements_service.feign.FilesAPI;
@@ -23,18 +23,19 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
+import util.TestUtil;
 
 import static danix.app.announcements_service.util.CurrencyCode.USD;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static util.TestUtil.getTestAnnouncement;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.IntStream;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
-class AnnouncementsServiceTests {
+public class AnnouncementsServiceTests {
 
     @Mock
     private AnnouncementsRepository announcementsRepository;
@@ -78,13 +79,18 @@ class AnnouncementsServiceTests {
     @InjectMocks
     private AnnouncementsServiceImpl announcementsService;
 
-    private static final User testUser = User.builder().id(1L).build();
+    private final String deletedAnnouncementTopic = "deleted_announcement";
 
+    private final String emailMessageTopic = "email_message";
+
+    private static final User testUser = TestUtil.getTestUser();
 
     @BeforeEach
     public void setUp() {
         ReflectionTestUtils.setField(announcementsService, "listKafkaTemplate", listKafkaTemplate);
         ReflectionTestUtils.setField(announcementsService, "emailMessageKafkaTemplate", emailMessageKafkaTemplate);
+        ReflectionTestUtils.setField(announcementsService, "deletedAnnouncementTopic", deletedAnnouncementTopic);
+        ReflectionTestUtils.setField(announcementsService, "emailMessageTopic", emailMessageTopic);
     }
 
     @Test
@@ -340,7 +346,7 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         announcementsService.delete(announcement.getId());
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate).send(eq("deleted_announcement"), any());
+        verify(listKafkaTemplate).send(eq(deletedAnnouncementTopic), any());
     }
 
     @Test
@@ -351,7 +357,7 @@ class AnnouncementsServiceTests {
         mockCurrentUser();
         announcementsService.delete(announcement.getId());
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate, never()).send(eq("deleted_announcement"), any());
+        verify(listKafkaTemplate, never()).send(eq(deletedAnnouncementTopic), any());
     }
 
     @Test
@@ -379,8 +385,8 @@ class AnnouncementsServiceTests {
         when(usersAPI.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate).send(eq("deleted_announcement"), any());
-        verify(emailMessageKafkaTemplate).send(eq("message"), any());
+        verify(listKafkaTemplate).send(eq(deletedAnnouncementTopic), any());
+        verify(emailMessageKafkaTemplate).send(eq(emailMessageTopic), any());
     }
 
     @Test
@@ -391,8 +397,8 @@ class AnnouncementsServiceTests {
         when(usersAPI.getUserEmail(eq(announcement.getOwnerId()), any())).thenReturn(Map.of("data", "test@gmail.com"));
         announcementsService.ban(announcement.getId(), "test_cause");
         verify(announcementsRepository).deleteById(announcement.getId());
-        verify(listKafkaTemplate, never()).send(eq("deleted_announcements_images"), any());
-        verify(emailMessageKafkaTemplate).send(eq("message"), any());
+        verify(listKafkaTemplate, never()).send(eq(deletedAnnouncementTopic), any());
+        verify(emailMessageKafkaTemplate).send(eq(emailMessageTopic), any());
     }
 
     @Test
@@ -454,20 +460,6 @@ class AnnouncementsServiceTests {
         when(announcementsRepository.findById(announcement.getId())).thenReturn(Optional.of(announcement));
         mockCurrentUser();
         assertThrows(AnnouncementException.class, () -> announcementsService.update(announcement.getId(), UpdateAnnouncementDTO.builder().build()));
-    }
-
-    private Announcement getTestAnnouncement() {
-        return Announcement.builder()
-                .id(1L)
-                .ownerId(testUser.getId())
-                .title("test_title")
-                .description("test_description")
-                .country("test_country")
-                .city("test_city")
-                .price(100.0)
-                .type("test_type")
-                .createdAt(LocalDateTime.now())
-                .build();
     }
 
     private void mockCurrentUser() {

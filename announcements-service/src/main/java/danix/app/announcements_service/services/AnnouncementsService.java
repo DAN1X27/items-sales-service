@@ -22,7 +22,7 @@ public interface AnnouncementsService {
 
     byte[] downloadImage(Long id);
 
-    void addImage(MultipartFile image, Long id);
+    DataDTO<Long> addImage(MultipartFile image, Long id);
 
     void deleteImage(Long id);
 

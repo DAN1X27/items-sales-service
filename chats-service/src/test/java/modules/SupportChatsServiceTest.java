@@ -1,4 +1,4 @@
-package danix.app.chats_service;
+package modules;
 
 import danix.app.chats_service.dto.ResponseMessageDTO;
 import danix.app.chats_service.feign.UsersAPI;
@@ -7,6 +7,7 @@ import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.SupportChatsMessagesRepository;
 import danix.app.chats_service.repositories.SupportChatsRepository;
+import danix.app.chats_service.util.EncryptUtil;
 import danix.app.chats_service.util.SecurityUtil;
 import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.impl.MessagesServiceImpl;
@@ -22,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import util.TestUtil;
 
 import java.util.Map;
 import java.util.Optional;
@@ -63,21 +65,23 @@ public class SupportChatsServiceTest {
     @Mock
     private SecurityUtil securityUtil;
 
+    @Mock
+    private EncryptUtil encryptUtil;
+
     @InjectMocks
     private SupportChatsServiceImpl supportChatsService;
 
-    private final User currentUser = User.builder().id(1L).build();
+    private final User currentUser = TestUtil.getTestCurrentUser();
 
     private SupportChat supportChat;
 
+    private static final String token = "token";
+
     @BeforeEach
     public void setSupportChat() {
-        supportChat = SupportChat.builder()
-                .id(1L)
-                .userId(currentUser.getId())
-                .adminId(2L)
-                .status(SupportChat.Status.WAIT)
-                .build();
+        supportChat = TestUtil.getTestSupportChat();
+        supportChat.setId(1L);
+        supportChat.setAdminId(2L);
     }
 
     @Test
@@ -194,6 +198,7 @@ public class SupportChatsServiceTest {
     @Test
     public void sendMessage() {
         mockCurrentUser();
+        mockJwt();
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
         SupportChatMessage message = SupportChatMessage.builder()
                 .id(1L)
@@ -202,8 +207,10 @@ public class SupportChatsServiceTest {
         when(messageMapper.toSupportChatMessage(any(), any(), any(), any())).thenReturn(message);
         ResponseMessageDTO messageDTO = new ResponseMessageDTO();
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(messageDTO);
-        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", false));
-        supportChatsService.sendTextMessage(supportChat.getId(), "message", "");
+        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), token)).thenReturn(Map.of("data", false));
+        String text = "text";
+        when(encryptUtil.encrypt(text)).thenReturn(text);
+        supportChatsService.sendTextMessage(supportChat.getId(), text);
         verify(messagesRepository).save(any());
         verify(messagingTemplate).convertAndSend("/topic/support/" + supportChat.getId(), messageDTO);
     }
@@ -211,7 +218,7 @@ public class SupportChatsServiceTest {
     @Test
     public void sendMessageWhenChatNotFound() {
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.empty());
-        assertThrows(ChatException.class, () -> supportChatsService.sendTextMessage(supportChat.getId(), "message", ""));
+        assertThrows(ChatException.class, () -> supportChatsService.sendTextMessage(supportChat.getId(), "message"));
     }
 
     @Test
@@ -219,21 +226,23 @@ public class SupportChatsServiceTest {
         mockCurrentUser();
         supportChat.setStatus(SupportChat.Status.CLOSED);
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
-        assertThrows(ChatException.class, () -> supportChatsService.sendTextMessage(supportChat.getId(), "message", ""));
+        assertThrows(ChatException.class, () -> supportChatsService.sendTextMessage(supportChat.getId(), "message"));
     }
 
     @Test
     public void sendMessageWhenCurrentUserBlocked() {
         mockCurrentUser();
+        mockJwt();
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
-        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", true));
+        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), token)).thenReturn(Map.of("data", true));
         assertThrows(ChatException.class, () -> supportChatsService
-                .sendTextMessage(supportChat.getId(), "message", ""));
+                .sendTextMessage(supportChat.getId(), "message"));
     }
 
     @Test
     public void sendFile() {
         mockCurrentUser();
+        mockJwt();
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
         SupportChatMessage message = SupportChatMessage.builder()
                 .id(1L)
@@ -242,8 +251,8 @@ public class SupportChatsServiceTest {
         when(messageMapper.toSupportChatMessage(any(), any(), any(), any())).thenReturn(message);
         ResponseMessageDTO messageDTO = new ResponseMessageDTO();
         when(messageMapper.toResponseMessageDTO(any())).thenReturn(messageDTO);
-        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), "")).thenReturn(Map.of("data", false));
-        supportChatsService.sendFile(supportChat.getId(), testFile, "", ContentType.IMAGE);
+        when(usersAPI.isBlockedByUser(supportChat.getAdminId(), token)).thenReturn(Map.of("data", false));
+        supportChatsService.sendFile(supportChat.getId(), testFile, ContentType.IMAGE);
         verify(messagesRepository).save(any());
         verify(messagesService).saveFile(eq(testFile), any(), eq(ContentType.IMAGE), any());
         verify(messagingTemplate).convertAndSend("/topic/support/" + supportChat.getId(), messageDTO);
@@ -254,7 +263,7 @@ public class SupportChatsServiceTest {
         mockCurrentUser();
         supportChat.setUserId(2L);
         when(supportChatsRepository.findById(supportChat.getId())).thenReturn(Optional.of(supportChat));
-        assertThrows(ChatException.class, () -> supportChatsService.sendTextMessage(supportChat.getId(),"message", ""));
+        assertThrows(ChatException.class, () -> supportChatsService.sendTextMessage(supportChat.getId(),"message"));
     }
 
     @Test
@@ -264,8 +273,10 @@ public class SupportChatsServiceTest {
                 .chat(supportChat)
                 .build();
         when(messagesRepository.findById(testMessage.getId())).thenReturn(Optional.of(testMessage));
-        supportChatsService.updateMessage(testMessage.getId(), "message");
-        verify(messagesService).updateMessage(testMessage, "message", "/topic/support/" + supportChat.getId());
+        String text = "text";
+        when(encryptUtil.encrypt(text)).thenReturn(text);
+        supportChatsService.updateMessage(testMessage.getId(), text);
+        verify(messagesService).updateMessage(testMessage, text, "/topic/support/" + supportChat.getId());
     }
 
     @Test
@@ -316,6 +327,10 @@ public class SupportChatsServiceTest {
 
     private void mockCurrentUser() {
         when(securityUtil.getCurrentUser()).thenReturn(currentUser);
+    }
+
+    private void mockJwt() {
+        when(securityUtil.getJwt()).thenReturn(token);
     }
 
 }

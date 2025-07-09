@@ -1,4 +1,4 @@
-package danix.app.chats_service;
+package modules;
 
 import danix.app.chats_service.feign.FilesAPI;
 import danix.app.chats_service.models.UsersChatMessage;

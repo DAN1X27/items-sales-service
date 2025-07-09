@@ -48,8 +48,13 @@ server:
 max_storage_days: ${max_storage_days}
 max_images_count: ${max_images_count}
 access_key: ${access_key}
-currency_converter_api_key: ${currency_converter_api_key}
+currency_layer_api_key: ${currency_layer_api_key}
+currency_layer_url: ${currency_layer_url}
 allowed_origins: ${allowed_origins}
+kafka-topics:
+  deleted-announcement: ${kafka.topics.deleted-announcement}
+  deleted-user: ${kafka.topics.deleted-user}
+  email-message: ${kafka.topics.email-message}
 eureka:
   instance:
     instanceId: ${spring.application.name}

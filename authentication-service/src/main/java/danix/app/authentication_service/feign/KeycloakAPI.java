@@ -46,6 +46,9 @@ public interface KeycloakAPI {
                        @RequestHeader(HttpHeaders.AUTHORIZATION) String accessToken);
 
     @GetMapping("/admin/realms/items-sales-service/users")
-    List<UserInfoDTO> getUser(@RequestParam String email,
-                              @RequestHeader(HttpHeaders.AUTHORIZATION) String accessToken);
+    List<UserInfoDTO> getUsersByEmail(@RequestParam String email,
+                                      @RequestHeader(HttpHeaders.AUTHORIZATION) String accessToken);
+
+    @GetMapping("/admin/realms/items-sales-service/users")
+    List<UserInfoDTO> getUsersById(@RequestParam Long id, @RequestHeader(HttpHeaders.AUTHORIZATION) String accessToken);
 }

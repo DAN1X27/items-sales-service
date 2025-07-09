@@ -9,6 +9,7 @@ import danix.app.chats_service.mapper.MessageMapper;
 import danix.app.chats_service.models.*;
 import danix.app.chats_service.repositories.UsersChatsRepository;
 import danix.app.chats_service.repositories.UsersChatsMessagesRepository;
+import danix.app.chats_service.util.EncryptUtil;
 import danix.app.chats_service.util.SecurityUtil;
 import danix.app.chats_service.models.User;
 import danix.app.chats_service.services.MessagesService;
@@ -50,6 +51,8 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 
 	private final SecurityUtil securityUtil;
 
+	private final EncryptUtil encryptUtil;
+
 	@Override
 	public List<ResponseUsersChatDTO> getUserChats(int page, int count) {
 		long id = securityUtil.getCurrentUser().getId();
@@ -69,9 +72,9 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 
 	@Override
 	@Transactional
-	public DataDTO<Long> create(long userId, String token) {
+	public DataDTO<Long> create(long userId) {
 		User currentUser = securityUtil.getCurrentUser();
-		if (isBlocked(userId, token)) {
+		if (isBlocked(userId, securityUtil.getJwt())) {
 			throw new ChatException("User has blocked you");
 		}
 		chatsRepository.findByUser1IdAndUser2Id(currentUser.getId(), userId).ifPresent(chat -> {
@@ -86,17 +89,17 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 
 	@Override
 	@Transactional
-	public DataDTO<Long> sendTextMessage(long chatId, String text, String token) {
-		UsersChatMessage message = saveMessage(chatId, text, ContentType.TEXT, token);
+	public DataDTO<Long> sendTextMessage(long chatId, String text) {
+		UsersChatMessage message = saveMessage(chatId, text, ContentType.TEXT, securityUtil.getJwt());
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
 	}
 
 	@Override
 	@Transactional
-	public DataDTO<Long> sendFile(long chatId, MultipartFile file, String token, ContentType contentType) {
+	public DataDTO<Long> sendFile(long chatId, MultipartFile file, ContentType contentType) {
 		String fileName = messagesService.getFileName(contentType);
-		UsersChatMessage message = saveMessage(chatId, fileName, contentType, token);
+		UsersChatMessage message = saveMessage(chatId, fileName, contentType, securityUtil.getJwt());
 		messagesService.saveFile(file, message, contentType, () -> messagesRepository.delete(message));
 		sendMessageOnTopic(message);
 		return new DataDTO<>(message.getId());
@@ -117,6 +120,9 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 		if (isBlocked(userId, token)) {
 			throw new ChatException("User blocked you");
 		}
+		if (contentType == ContentType.TEXT) {
+			text = encryptUtil.encrypt(text);
+		}
 		UsersChatMessage message = messageMapper.toUsersChatMessage(text, currentUser.getId(), chat, contentType);
 		messagesRepository.save(message);
 		return message;
@@ -126,7 +132,8 @@ public class UsersChatsServiceImpl implements UsersChatsService {
 	@Transactional
 	public void updateMessage(long id, String text) {
 		UsersChatMessage message = getMessageById(id);
-		messagesService.updateMessage(message, text, "/topic/chat/" + message.getChat().getId());
+		String encryptedText = encryptUtil.encrypt(text);
+		messagesService.updateMessage(message, encryptedText, "/topic/chat/" + message.getChat().getId());
 	}
 
 	@Override

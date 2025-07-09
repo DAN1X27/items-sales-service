@@ -14,7 +14,7 @@ public class DeletedChatListener {
 
     private final FilesService filesService;
 
-    @KafkaListener(topics = "deleted_chat", containerFactory = "listFactory")
+    @KafkaListener(topics = "${kafka-topics.deleted-chat}", containerFactory = "listFactory")
     public void deleteChatFiles(List<String> files) {
         for (String file : files) {
             if (file.endsWith(".jpg")) {
