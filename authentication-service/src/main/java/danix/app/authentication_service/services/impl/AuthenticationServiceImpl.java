@@ -52,7 +52,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Value("${kafka-topics.email-message}")
     private String emailMessageTopic;
-
+  
     private static final Random random = new Random();
 
     @Value("${access_key}")
